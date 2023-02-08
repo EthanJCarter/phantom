@@ -1380,6 +1380,7 @@ subroutine write_options_eos(iunit)
  use infile_utils,   only:write_inopt
  use eos_helmholtz,  only:eos_helmholtz_write_inopt
  use eos_barotropic, only:write_options_eos_barotropic
+ use eos_barotropic_iso, only:write_options_eos_barotropic_iso
  use eos_piecewise,  only:write_options_eos_piecewise
  use eos_gasradrec,  only:write_options_eos_gasradrec
  integer, intent(in) :: iunit
@@ -1420,6 +1421,7 @@ subroutine read_options_eos(name,valstring,imatch,igotall,ierr)
  use io,             only:fatal
  use eos_helmholtz,  only:eos_helmholtz_set_relaxflag
  use eos_barotropic, only:read_options_eos_barotropic
+ use eos_barotropic_iso, only:read_options_eos_barotropic_iso
  use eos_piecewise,  only:read_options_eos_piecewise
  use eos_gasradrec,  only:read_options_eos_gasradrec
  character(len=*), intent(in)  :: name,valstring
