@@ -110,16 +110,20 @@ subroutine init_eos_barotropic_iso(polyk_iso,polyk2,ierr)
     rhocrit0cgs = 0.0
  endif
 
-end subroutine init_eos_barotropic
+end subroutine init_eos_barotropic_iso
 
 !-----------------------------------------------------------------------
 !+
 !  Main eos routine: calculates pressure at a given density
 !+
 !-----------------------------------------------------------------------
-subroutine get_eos_barotropic_iso(rhoi,polyk_iso,polyk2,ponrhoi,spsoundi,gammai)
- real, intent(in)  :: rhoi,polyk_iso,polyk2
+subroutine get_eos_barotropic_iso(rhoi,polyk,polyk2,polyk_iso,isink,xi,yi,zi,qfacdisc, ponrhoi,spsoundi,gammai)
+   use part, only:xyzmh_ptmass
+ real, intent(in)  :: rhoi,polyk,polyk2,polyk_iso,qfacdisc,xi,yi,zi
+ integer, intent(in) :: isink
  real, intent(out) :: ponrhoi,spsoundi,gammai
+
+ ! NOTE: POLYK IS REPLACED WITH POLYK_ISO
 
  ! variables calculated in the eos initialisation routine:
  !    fac2 = polyk_iso*(rhocrit2/rhocrit1)**(gamma1-1.)
@@ -203,8 +207,8 @@ end function gamma_barotropic_iso
 !  print information about the equation of state parameters
 !+
 !-----------------------------------------------------------------------
-subroutine eos_info_barotropic_iso(polyk,polyk_iso,polyk2,iprint)
- real,    intent(in) :: polyk_iso,polyk2
+subroutine eos_info_barotropic_iso(polyk,polyk2,polyk_iso,iprint)
+ real,    intent(in) :: polyk,polyk2,polyk_iso
  integer, intent(in) :: iprint
  character(len=*), parameter :: cu   = ' code units = '
  character(len=*), parameter :: baro = ' Barotropic eq of state: '
@@ -288,7 +292,7 @@ subroutine write_options_eos_barotropic_iso(iunit)
  call write_inopt(gamma3,'gamma3','adiabatic index 3 (barotropic eos)',iunit)
  call write_inopt(gamma4,'gamma4','adiabatic index 4 (barotropic eos)',iunit)
 
-end subroutine write_options_eos_barotropic
+end subroutine write_options_eos_barotropic_iso
 
 !-----------------------------------------------------------------------
 !+
