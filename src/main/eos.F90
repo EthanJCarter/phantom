@@ -403,7 +403,8 @@ subroutine equationofstate(eos_type,ponrhoi,spsoundi,rhoi,xi,yi,zi,tempi,eni,gam
 !--Barotropic equation of state with background temperature of local isothermal disc
 !
    call get_eos_barotropic_iso(rhoi,polyk,polyk2,polyk_iso,isink,xi,yi,zi,qfacdisc, ponrhoi,spsoundi,gammai)
-   if (present(tempi)) tempi = temperature_coef*mui*ponrhoi
+   spsoundi = sqrt(ponrhoi)
+   tempi = temperature_coef*mui*ponrhoi
 
  case default
     spsoundi = 0. ! avoids compiler warnings
