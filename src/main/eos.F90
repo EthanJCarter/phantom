@@ -24,6 +24,7 @@ module eos
 !    15 = Helmholtz free energy eos
 !    16 = Shen eos
 !    20 = Ideal gas + radiation + various forms of recombination energy from HORMONE (Hirai et al., 2020)
+!    25 = Barotropic + locally isothermal disc centered on a sink particle - combination of ieos 6 & 8.
 !
 ! :References:
 !    Lodato & Pringle (2007)
@@ -38,7 +39,7 @@ module eos
 !   - metallicity : *metallicity*
 !   - mu          : *mean molecular weight*
 !
-! :Dependencies: dim, dump_utils, eos_barotropic, eos_gasradrec,
+! :Dependencies: dim, dump_utils, eos_barotropic, eos_barotropic_iso, eos_gasradrec,
 !   eos_helmholtz, eos_idealplusrad, eos_mesa, eos_piecewise, eos_shen,
 !   eos_stratified, infile_utils, io, mesa_microphysics, part, physcon,
 !   units
@@ -46,8 +47,9 @@ module eos
  use part, only:ien_etotal,ien_entropy,ien_type
  use dim, only:gr
  implicit none
- integer, parameter, public :: maxeos = 20
+ integer, parameter, public :: maxeos = 30
  real,               public :: polyk, polyk2, gamma
+ real,               public :: polyk_iso ! polyk_constant for isothermal part of case 30
  real,               public :: qfacdisc = 0.75, qfacdisc2 = 0.75
  logical,            public :: extract_eos_from_hdr = .false.
  integer,            public :: isink = 0.
@@ -116,6 +118,7 @@ subroutine equationofstate(eos_type,ponrhoi,spsoundi,rhoi,xi,yi,zi,tempi,eni,gam
  use eos_gasradrec, only:equationofstate_gasradrec
  use eos_stratified, only:get_eos_stratified
  use eos_barotropic, only:get_eos_barotropic
+ use eos_barotropic_iso, only:get_eos_barotropic_iso
  use eos_piecewise,  only:get_eos_piecewise
  integer, intent(in)    :: eos_type
  real,    intent(in)    :: rhoi,xi,yi,zi
@@ -395,6 +398,13 @@ subroutine equationofstate(eos_type,ponrhoi,spsoundi,rhoi,xi,yi,zi,tempi,eni,gam
     tempi    = temperaturei
     if (present(mu_local)) mu_local = 1./imui
 
+ case(25)
+!
+!--Barotropic equation of state with background temperature of local isothermal disc
+!
+   call get_eos_barotropic_iso(rhoi,polyk,polyk2,polyk_iso,isink,xi,yi,zi,qfacdisc, ponrhoi,spsoundi,gammai)
+   if (present(tempi)) tempi = temperature_coef*mui*ponrhoi
+
  case default
     spsoundi = 0. ! avoids compiler warnings
     ponrhoi  = 0.
@@ -417,6 +427,7 @@ subroutine init_eos(eos_type,ierr)
  use eos_helmholtz,  only:eos_helmholtz_init
  use eos_piecewise,  only:init_eos_piecewise
  use eos_barotropic, only:init_eos_barotropic
+ use eos_barotropic_iso, only:init_eos_barotropic_iso,T_iso
  use eos_shen,       only:init_eos_shen_NL3
  use eos_gasradrec,  only:init_eos_gasradrec
  use dim,            only:maxvxyzu,do_radiation
@@ -495,7 +506,15 @@ subroutine init_eos(eos_type,ierr)
        ierr = ierr_option_conflict
     endif
 
+ case(25)
+    !
+    ! barotropic equation of state with local isothermal disc
+    !
+    polyk_iso = T_iso/(temperature_coef*gmw)
+  
+    call init_eos_barotropic_iso(polyk_iso,polyk2,ierr)
  end select
+ 
  done_init_eos = .true.
 
  if (do_radiation .and. iopacity_type==1) call init_eos_mesa(X_in,Z_in,ierr)
@@ -1208,6 +1227,7 @@ subroutine eosinfo(eos_type,iprint)
  use io,             only:fatal,id,master
  use eos_helmholtz,  only:eos_helmholtz_eosinfo
  use eos_barotropic, only:eos_info_barotropic
+ use eos_barotropic_iso, only:eos_info_barotropic_iso
  use eos_piecewise,  only:eos_info_piecewise
  use eos_gasradrec,  only:eos_info_gasradrec
  integer, intent(in) :: eos_type,iprint
@@ -1251,6 +1271,8 @@ subroutine eosinfo(eos_type,iprint)
     else
        write(*,'(1x,a,f10.6,a,f10.6)') 'Using fixed composition X = ',X_in,", Z = ",Z_in
     endif
+ case(31)
+    call eos_info_barotropic_iso(polyk,polyk2,polyk_iso,iprint)
  end select
  write(iprint,*)
 
@@ -1382,6 +1404,8 @@ subroutine write_options_eos(iunit)
        call write_inopt(X_in,'X','H mass fraction (ignored if variable composition)',iunit)
        call write_inopt(Z_in,'Z','metallicity (ignored if variable composition)',iunit)
     endif
+ case(25)
+    call write_options_eos_barotropic_iso(iunit)
  end select
 
 end subroutine write_options_eos
@@ -1439,6 +1463,7 @@ subroutine read_options_eos(name,valstring,imatch,igotall,ierr)
  if (.not.imatch .and. ieos== 8) call read_options_eos_barotropic(name,valstring,imatch,igotall_barotropic,ierr)
  if (.not.imatch .and. ieos== 9) call read_options_eos_piecewise( name,valstring,imatch,igotall_piecewise, ierr)
  if (.not.imatch .and. ieos==20) call read_options_eos_gasradrec( name,valstring,imatch,igotall_gasradrec, ierr)
+ if (.not.imatch .and. ieos== 25) call read_options_eos_barotropic_iso(name,valstring,imatch,igotall_barotropic,ierr)
 
  !--make sure we have got all compulsory options (otherwise, rewrite input file)
  igotall = (ngot >= 1) .and. igotall_piecewise .and. igotall_barotropic .and. igotall_gasradrec
