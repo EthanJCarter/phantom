@@ -4,7 +4,7 @@
 ! See LICENCE file for usage and distribution conditions                   !
 ! http://phantomsph.bitbucket.io/                                          !
 !--------------------------------------------------------------------------!
-module eos_barotropic
+module eos_barotropic_iso
 !
 ! Implements barotropic equation of state, e.g. for star formation
 !
