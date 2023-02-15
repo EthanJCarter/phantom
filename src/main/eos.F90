@@ -1272,7 +1272,7 @@ subroutine eosinfo(eos_type,iprint)
     else
        write(*,'(1x,a,f10.6,a,f10.6)') 'Using fixed composition X = ',X_in,", Z = ",Z_in
     endif
- case(31)
+ case(25)
     call eos_info_barotropic_iso(polyk,polyk2,polyk_iso,iprint)
  end select
  write(iprint,*)
