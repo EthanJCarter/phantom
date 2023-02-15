@@ -174,6 +174,19 @@ ifeq ($(SETUP), gravdisc)
     IND_TIMESTEPS=yes
 endif
 
+ifeq ($(SETUP), mydisc)
+#   locally isothermal gas disc with self-gravity
+    DISC_VISCOSITY=yes
+    SETUPFILE= setup_disc.f90
+    ANALYSIS= analysis_disc.f90
+    ISOTHERMAL=yes
+    GRAVITY=yes
+    KNOWN_SETUP=yes
+    MULTIRUNFILE= multirun.f90
+    STORE_TEMP=yes
+    IND_TIMESTEPS=yes
+endif
+
 ifeq ($(SETUP), grtde)
 #   tidal disruption event in general relativity
     SETUPFILE= setup_grtde.f90
