@@ -23,3 +23,8 @@ build/phantom-version.h
 *.tar
 .DS_Store
 _build
+src/setup/setup_cloud.f90
+data/velfield/cube_v3.dat
+.gitignore
+data/velfield/cube_v2.dat
+data/velfield/cube_v1.dat
