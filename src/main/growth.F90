@@ -11,15 +11,19 @@ module growth
 ! :References:
 !  Stepinski & Valageas (1997)
 !  Kobayashi & Tanaka (2009)
+!  Rozner & Grishin (2020)
 !
 ! :Owner: Arnaud Vericel
 !
 ! :Runtime parameters:
 !   - Tsnow         : *snow line condensation temperature in K*
 !   - bin_per_dex   : *(mcfost) number of bins of sizes per dex*
+!   - cohacc        : *strength of the cohesive acceleration in g/s^2*
+!   - dsize         : *size of ejected grain during erosion in cm*
 !   - flyby         : *use primary for keplerian freq. calculation*
 !   - force_smax    : *(mcfost) set manually maximum size for binning*
 !   - grainsizemin  : *minimum allowed grain size in cm*
+!   - ieros         : *erosion of dust (0=off,1=on)*
 !   - ifrag         : *fragmentation of dust (0=off,1=on,2=Kobayashi)*
 !   - isnow         : *snow line (0=off,1=position based,2=temperature based)*
 !   - rsnow         : *snow line position in AU*
@@ -27,7 +31,6 @@ module growth
 !   - vfrag         : *uniform fragmentation threshold in m/s*
 !   - vfragin       : *inward fragmentation threshold in m/s*
 !   - vfragout      : *inward fragmentation threshold in m/s*
-!   - wbymass       : *weight dustgasprops by mass rather than mass/density*
 !
 ! :Dependencies: checkconserved, dim, dust, eos, infile_utils, io, options,
 !   part, physcon, table_utils, units, viscosity
@@ -48,7 +51,7 @@ module growth
  real, public           :: vfragSI      = 15.
  real, public           :: vfraginSI    = 5.
  real, public           :: vfragoutSI   = 15.
- real, public           :: betacgs      = 100
+ real, public           :: cohacccgs    = 100
  real, public           :: dsizecgs     = 1.0e-3
 
  real, public           :: vfrag
@@ -56,11 +59,8 @@ module growth
  real, public           :: vfragin
  real, public           :: vfragout
  real, public           :: grainsizemin
- real, public           :: beta
+ real, public           :: cohacc
  real, public           :: dsize
-
-
- logical, public        :: wbymass         = .true.
 
 #ifdef MCFOST
  logical, public        :: f_smax    = .false.
@@ -94,7 +94,7 @@ subroutine init_growth(ierr)
  vfragout       = vfragoutSI * 100 / unit_velocity
  rsnow          = rsnow * au / udist
  grainsizemin   = gsizemincgs / udist
- beta           = betacgs * utime * utime / umass
+ cohacc         = cohacccgs * utime * utime / umass
  dsize          = dsizecgs / udist
 
  if (ifrag > 0) then
@@ -142,8 +142,8 @@ subroutine init_growth(ierr)
  endif
 
  if (ieros == 1) then
-    if (beta < 0) then
-       call error('init_growth','beta < 0',var='beta',val=beta)
+    if (cohacc < 0) then
+       call error('init_growth','cohacc < 0',var='cohacc',val=cohacc)
        ierr = 5
     endif
     if (dsize < 0) then
@@ -186,7 +186,7 @@ subroutine print_growthinfo(iprint)
     endif
  endif
  if (ieros == 1) then
-    write(iprint,"(a)")    ' Using aeolian-erosion model where ds = -rhog*deltav**3/(3*beta*d**2)*dt    '
+    write(iprint,"(a)")    ' Using aeolian-erosion model where ds = -rhog*(deltav**3)*(d**2)/(3*cohacc*s)*dt    '
     write(iprint,"(2(a,1pg10.3),a)")' dsize = ',dsizecgs,' cm = ',dsize,' (code units)'
  endif
 end subroutine print_growthinfo
@@ -254,8 +254,10 @@ subroutine get_growth_rate(npart,xyzh,vxyzu,dustgasprop,VrelVf,dustprop,dsdt)
              case(2)
                 dsdt(i) = -rhod/dustprop(2,i)*vrel*(VrelVf(i)**2)/(1+VrelVf(i)**2) ! Kobayashi model
              end select
+          endif                           !sqrt(0.0123)=0.110905    !1.65 -> surface energy in cgs
+          if (ieros == 1 .and. (dustgasprop(4,i) >= 0.110905*utime*sqrt(1.65/umass/dustgasprop(2,i)/dsize))) then
+             dsdt(i) = dsdt(i) - dustgasprop(2,i)*(dustgasprop(4,i)**3)*(dsize**2)/(3.*cohacc*dustprop(1,i)) ! Erosion model
           endif
-          if (ieros == 1) dsdt(i) = dsdt(i) - dustgasprop(2,i)*dustgasprop(4,i)**3*dsize**2 / 3. / beta / dustprop(1,i)
        endif
     else
        dsdt(i) = 0.
@@ -344,7 +346,6 @@ subroutine write_options_growth(iunit)
  integer, intent(in)        :: iunit
 
  write(iunit,"(/,a)") '# options controlling growth'
- call write_inopt(wbymass,'wbymass','weight dustgasprops by mass rather than mass/density',iunit)
  if (nptmass > 1) call write_inopt(this_is_a_flyby,'flyby','use primary for keplerian freq. calculation',iunit)
  call write_inopt(ifrag,'ifrag','dust fragmentation (0=off,1=on,2=Kobayashi)',iunit)
  call write_inopt(ieros,'ieros','erosion of dust (0=off,1=on)',iunit)
@@ -360,8 +361,8 @@ subroutine write_options_growth(iunit)
     endif
  endif
  if (ieros == 1) then
-   call write_inopt(betacgs,'beta','strength of the cohesive acceleration in g/s^2',iunit)
-   call write_inopt(dsizecgs,'dsize','size of ejected grain during erosion in cm',iunit)
+    call write_inopt(cohacccgs,'cohacc','strength of the cohesive acceleration in g/s^2',iunit)
+    call write_inopt(dsizecgs,'dsize','size of ejected grain during erosion in cm',iunit)
  endif
 
 #ifdef MCFOST
@@ -418,8 +419,8 @@ subroutine read_options_growth(name,valstring,imatch,igotall,ierr)
  case('vfragout')
     read(valstring,*,iostat=ierr) vfragoutSI
     ngot = ngot + 1
- case('beta')
-    read(valstring,*,iostat=ierr) betacgs
+ case('cohacc')
+    read(valstring,*,iostat=ierr) cohacccgs
     ngot = ngot + 1
  case('dsize')
     read(valstring,*,iostat=ierr) dsizecgs
@@ -428,9 +429,6 @@ subroutine read_options_growth(name,valstring,imatch,igotall,ierr)
     read(valstring,*,iostat=ierr) this_is_a_flyby
     ngot = ngot + 1
     if (nptmass < 2) tmp = .true.
- case('wbymass')
-    read(valstring,*,iostat=ierr) wbymass
-    ngot = ngot + 1
 #ifdef MCFOST
  case('force_smax')
     read(valstring,*,iostat=ierr) f_smax
@@ -450,23 +448,23 @@ subroutine read_options_growth(name,valstring,imatch,igotall,ierr)
  imcf = 3
 #endif
 
- if (ieros == 1) goteros = 2
+ if (ieros == 1) goteros = 3
 
  if (nptmass > 1 .or. tmp) then
-    if ((ifrag <= 0) .and. ngot == 3+imcf+goteros) igotall = .true.
-    if (isnow == 0) then
-       if (ngot == 6+imcf+goteros) igotall = .true.
-    elseif (isnow > 0) then
-       if (ngot == 8+imcf+goteros) igotall = .true.
-    else
-       igotall = .false.
-    endif
- else
     if ((ifrag <= 0) .and. ngot == 2+imcf+goteros) igotall = .true.
     if (isnow == 0) then
        if (ngot == 5+imcf+goteros) igotall = .true.
     elseif (isnow > 0) then
        if (ngot == 7+imcf+goteros) igotall = .true.
+    else
+       igotall = .false.
+    endif
+ else
+    if ((ifrag <= 0) .and. ngot == 1+imcf+goteros) igotall = .true.
+    if (isnow == 0) then
+       if (ngot == 4+imcf+goteros) igotall = .true.
+    elseif (isnow > 0) then
+       if (ngot == 6+imcf+goteros) igotall = .true.
     else
        igotall = .false.
     endif

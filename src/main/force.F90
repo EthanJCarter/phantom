@@ -39,11 +39,11 @@ module forces
 !
 ! :Runtime parameters: None
 !
-! :Dependencies: boundary, cooling, dim, dust, eos, eos_shen, fastmath,
-!   growth, io, io_summary, kdtree, kernel, linklist, metric_tools,
-!   mpiderivs, mpiforce, mpimemory, mpiutils, nicil, omputils, options,
-!   part, physcon, ptmass, ptmass_heating, radiation_utils, timestep,
-!   timestep_ind, timestep_sts, timing, units, utils_gr, viscosity
+! :Dependencies: boundary, cooling, dim, dust, eos, eos_shen, fastmath, io,
+!   io_summary, kdtree, kernel, linklist, metric_tools, mpiderivs,
+!   mpiforce, mpimemory, mpiutils, nicil, omputils, options, part, physcon,
+!   ptmass, ptmass_heating, radiation_utils, timestep, timestep_ind,
+!   timestep_sts, timing, units, utils_gr, viscosity
 !
  use dim, only:maxfsum,maxxpartveciforce,maxp,ndivcurlB,ndivcurlv,&
                maxdusttypes,maxdustsmall,do_radiation
@@ -883,7 +883,6 @@ subroutine compute_forces(i,iamgasi,iamdusti,xpartveci,hi,hi1,hi21,hi41,gradhi,g
  use kernel,      only:wkern_drag,cnormk_drag
  use part,        only:ndustsmall,grainsize,graindens
 #ifdef DUSTGROWTH
- use growth,      only:wbymass
  use kernel,      only:wkern,cnormk
 #endif
 #endif
@@ -1453,6 +1452,7 @@ subroutine compute_forces(i,iamgasi,iamdusti,xpartveci,hi,hi1,hi21,hi41,gradhi,g
           !rhoj      = 0.
           rho1j     = 0.
           rho21j    = 0.
+          densj     = 0.
 
           mrhoj5    = 0.
           autermj   = 0.
@@ -1831,18 +1831,12 @@ subroutine compute_forces(i,iamgasi,iamdusti,xpartveci,hi,hi1,hi21,hi41,gradhi,g
                    else
                       winter = wkern(q2j,qj)*hj21*hj1*cnormk
                    endif
+                   !--following quantities are weighted by mass rather than mass/density
                    fsum(idensgasi) = fsum(idensgasi) + pmassj*winter
-                   if (wbymass) then
-                      fsum(idvix)     = fsum(idvix)     + pmassj*dvx*winter
-                      fsum(idviy)     = fsum(idviy)     + pmassj*dvy*winter
-                      fsum(idviz)     = fsum(idviz)     + pmassj*dvz*winter
-                      fsum(icsi)      = fsum(icsi)      + pmassj*spsoundj*winter
-                   else
-                      fsum(idvix)     = fsum(idvix)     + pmassj/rhoj*dvx*winter
-                      fsum(idviy)     = fsum(idviy)     + pmassj/rhoj*dvy*winter
-                      fsum(idviz)     = fsum(idviz)     + pmassj/rhoj*dvz*winter
-                      fsum(icsi)      = fsum(icsi)      + pmassj/rhoj*spsoundj*winter
-                   endif
+                   fsum(idvix)     = fsum(idvix)     + pmassj*dvx*winter
+                   fsum(idviy)     = fsum(idviy)     + pmassj*dvy*winter
+                   fsum(idviz)     = fsum(idviz)     + pmassj*dvz*winter
+                   fsum(icsi)      = fsum(icsi)      + pmassj*spsoundj*winter
 #endif
                 else
                    !--the following works for large grains only (not hybrid large and small grains)
@@ -2458,7 +2452,7 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
                           use_dustfrac,damp,icooling,implicit_radiation
  use part,           only:h2chemistry,rhoanddhdrho,iboundary,igas,maxphase,maxvxyzu,nptmass,xyzmh_ptmass, &
                           massoftype,get_partinfo,tstop,strain_from_dvdx,ithick,iradP,sinks_have_heating,luminosity, &
-                          nucleation,idK2,idmu,idkappa,idgamma,dust_temp
+                          nucleation,idK2,idmu,idkappa,idgamma,dust_temp,pxyzu
  use cooling,        only:energ_cooling,cooling_in_step
  use ptmass_heating, only:energ_sinkheat
 #ifdef IND_TIMESTEPS
@@ -2471,9 +2465,9 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
  use linklist,       only:get_distance_from_centre_of_mass
  use kdtree,         only:expand_fgrav_in_taylor_series
  use nicil,          only:nicil_get_dudt_nimhd,nicil_get_dt_nimhd
- use timestep,       only:C_cour,C_cool,C_force,bignumber,dtmax
+ use timestep,       only:C_cour,C_cool,C_force,C_rad,C_ent,bignumber,dtmax
  use timestep_sts,   only:use_sts
- use units,          only:unit_ergg,unit_density,unit_velocity
+ use units,          only:unit_ergg,unit_density,get_c_code
  use eos_shen,       only:eos_shen_get_dTdu
 #ifdef KROME
  use part,           only:gamma_chem
@@ -2482,16 +2476,13 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
  use utils_gr,       only:get_u0
  use io,             only:error
 #ifdef DUSTGROWTH
- use growth,         only:wbymass
  use dust,           only:idrag,get_ts
  use part,           only:Omega_k
 #endif
  use io,             only:warning
  use physcon,        only:c,kboltz
- use timestep,       only:C_rad
 #ifdef GR
  use part,           only:pxyzu
- use timestep,       only:C_ent
 #endif
 
  integer,            intent(in)    :: icall
@@ -2681,6 +2672,7 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
        endif
     else
        rho1i = 0.
+       vwavei = 0.
     endif
 
 #ifdef GRAVITY
@@ -2761,7 +2753,7 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
           if (ien_type == ien_etotal) then
              fxyz4 = fxyz4 + fsum(idudtdissi) + fsum(idendtdissi)
           elseif (ien_type == ien_entropy_s) then
-             fxyz4 = fxyz4 + u0i/tempi*(fsum(idudtdissi) + fsum(idendtdissi))/kboltz
+             fxyz4 = fxyz4 + real(u0i/tempi*(fsum(idudtdissi) + fsum(idendtdissi))/kboltz)
           elseif (ien_type == ien_entropy) then ! here eni is the entropy
              if (gr .and. ishock_heating > 0) then
                 fxyz4 = fxyz4 + (gamma - 1.)*densi**(1.-gamma)*u0i*fsum(idudtdissi)
@@ -2782,14 +2774,14 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
              fxyz4 = 0.
 #endif
              if (lightcurve) then
-                luminosity(i) = pmassi*u0i*(fsum(idendtdissi)+fsum(idudtdissi))
+                luminosity(i) = real(pmassi*u0i*(fsum(idendtdissi)+fsum(idudtdissi)),kind=kind(luminosity))
              endif
 #endif
           elseif (ieos==16) then ! here eni is the temperature
              if (abs(damp) < tiny(damp)) then
                 rho_cgs = rhoi * unit_density
                 call eos_shen_get_dTdu(rho_cgs,eni,0.05,dTdui_cgs)
-                dTdui = dTdui_cgs / unit_ergg
+                dTdui = real(dTdui_cgs / unit_ergg)
                 !use cgs
                 fxyz4 = fxyz4 + dTdui*(pri*rho1i*rho1i*drhodti + fsum(idudtdissi))
              else
@@ -2918,12 +2910,10 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
           if (eni + dtc*fxyzu(4,i) < epsilon(0.) .and. eni > epsilon(0.)) dtcool = C_cool*abs(eni/fxyzu(4,i))
        endif
 
-#ifdef GR
        ! s entropy timestep to avoid too large s entropy leads to infinite temperature
-       if (ien_type == ien_entropy_s .and. gr) then
+       if (gr .and. ien_type == ien_entropy_s) then
           dtent = C_ent*abs(pxyzu(4,i)/fxyzu(4,i))
        endif
-#endif
 
        ! timestep based on non-ideal MHD
        if (mhd_nonideal) then
@@ -2954,13 +2944,9 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
        if (iamdusti) then
           !- return interpolations to their respective arrays
           dustgasprop(2,i) = fsum(idensgasi) !- rhogas
-          dustgasprop(4,i) = sqrt(fsum(idvix)**2 + fsum(idviy)**2 + fsum(idviz)**2) !- dv
-          dustgasprop(1,i) = fsum(icsi)
-          !- if interpolations are mass weigthed, divide result by rhog,i
-          if (wbymass) then
-             dustgasprop(1,i) = dustgasprop(1,i)/dustgasprop(2,i) !- sound speed
-             dustgasprop(4,i) = dustgasprop(4,i)/dustgasprop(2,i) !- |dv|
-          endif
+          !- interpolations are mass weigthed, divide result by rhog,i
+          dustgasprop(4,i) = sqrt(fsum(idvix)**2 + fsum(idviy)**2 + fsum(idviz)**2)/dustgasprop(2,i) !- |dv|
+          dustgasprop(1,i) = fsum(icsi)/dustgasprop(2,i) !- sound speed
 
           !- get the Stokes number with get_ts using the interpolated quantities
           rhoi             = xpartveci(irhoi)
@@ -3021,7 +3007,7 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
              dtradi = bignumber
           else
              drad(iradxi,i) = fsum(idradi) + radprop(iradP,i)*drhodti*rho1i*rho1i
-             c_code     = c/unit_velocity
+             c_code     = get_c_code()
              radkappai  = xpartveci(iradkappai)
              radlambdai = xpartveci(iradlambdai)
              ! eq30 Whitehouse & Bate 2004
