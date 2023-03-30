@@ -162,6 +162,7 @@ ifeq ($(SETUP), disc)
     IND_TIMESTEPS=yes
 endif
 
+#       !!! CUSTOM !!!
 ifeq ($(SETUP), gravdisc)
 #   locally isothermal gas disc with self-gravity
     DISC_VISCOSITY=yes
@@ -171,19 +172,6 @@ ifeq ($(SETUP), gravdisc)
     GRAVITY=yes
     KNOWN_SETUP=yes
     MULTIRUNFILE= multirun.f90
-    IND_TIMESTEPS=yes
-endif
-
-ifeq ($(SETUP), mydisc)
-#   locally isothermal gas disc with self-gravity
-    DISC_VISCOSITY=yes
-    SETUPFILE= setup_disc.f90
-    ANALYSIS= analysis_disc.f90
-    ISOTHERMAL=yes
-    GRAVITY=yes
-    KNOWN_SETUP=yes
-    MULTIRUNFILE= multirun.f90
-    STORE_TEMP=yes
     IND_TIMESTEPS=yes
 endif
 
@@ -426,6 +414,8 @@ ifeq ($(SETUP), sphereinbox)
     PERIODIC=yes
     SETUPFILE= velfield_fromcubes.f90 setup_sphereinbox.f90
     KNOWN_SETUP=yes
+    GRAVITY=yes
+    ISOTHERMAL=yes
 endif
 
 ifeq ($(SETUP), shock)
@@ -715,6 +705,47 @@ ifeq ($(SETUP), cluster)
 #   star cluster formation
     FPPFLAGS=
     SETUPFILE= velfield_fromcubes.f90 setup_cluster.f90
+    MODFILE= moddump_default.f90
+    ANALYSIS= phantom_pdfs.o analysis_MWpdf.f90 #analysis_sinkmass.f90
+    ISOTHERMAL=yes
+    GRAVITY=yes
+    IND_TIMESTEPS=yes
+    KNOWN_SETUP=yes
+    MAXPTMASS=1000
+    MAXP=3500000
+endif
+
+#       !!! CUSTOM !!!
+ifeq ($(SETUP), cloudclean)
+#   modelcular cloud
+    FPPFLAGS=
+    SETUPFILE= velfield_fromcubes.f90 setup_cloudclean.f90
+    MODFILE= moddump_default.f90
+    ANALYSIS= phantom_pdfs.o analysis_MWpdf.f90 #analysis_sinkmass.f90
+    ISOTHERMAL=yes
+    GRAVITY=yes
+    IND_TIMESTEPS=yes
+    KNOWN_SETUP=yes
+    MAXPTMASS=1000
+    MAXP=200000
+endif
+
+#       !!! CUSTOM !!!
+ifeq ($(SETUP), sphereonly)
+#   sphere setup
+    ISOTHERMAL=yes
+    PERIODIC=no
+    IND_TIMESTEPS=yes
+    GRAVITY=yes
+    SETUPFILE= velfield_fromcubes.f90 setup_sphere.f90
+    KNOWN_SETUP=yes
+endif
+
+#       !!! CUSTOM !!!
+ifeq ($(SETUP), cloud)
+#   modelcular cloud
+    FPPFLAGS=
+    SETUPFILE= velfield_fromcubes.f90 setup_cloud.f90
     MODFILE= moddump_default.f90
     ANALYSIS= phantom_pdfs.o analysis_MWpdf.f90 #analysis_sinkmass.f90
     ISOTHERMAL=yes
