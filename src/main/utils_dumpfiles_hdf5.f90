@@ -406,12 +406,11 @@ subroutine write_hdf5_arrays( &
  if (.not.array_options%isothermal) then
     call write_to_hdf5(vxyzu(4,1:npart), 'u', group_id, error)
  endif
- if (eos_outputs_gasP(ieos)) then
-    call write_to_hdf5(eos_vars(igasP,1:npart), eos_vars_label(igasP), group_id, error)
- endif
- if (eos_is_non_ideal(ieos)) then
-    call write_to_hdf5(eos_vars(itemp,1:npart), eos_vars_label(itemp), group_id, error)
- endif
+
+ call write_to_hdf5(eos_vars(igasP,1:npart), eos_vars_label(igasP), group_id, error)
+
+ call write_to_hdf5(eos_vars(itemp,1:npart), eos_vars_label(itemp), group_id, error)
+
  if (array_options%lightcurve) then
     call write_to_hdf5(luminosity(1:npart), 'luminosity', group_id, error)
  endif
@@ -896,9 +895,10 @@ subroutine read_hdf5_arrays( &
     call read_from_hdf5(vxyzu(4,:), 'u', group_id, got, error)
     if (.not.got) got_arrays%got_vxyzu = .false.
  endif
- if (eos_is_non_ideal(ieos)) then
-    call read_from_hdf5(eos_vars(itemp,:), eos_vars_label(itemp), group_id, got_arrays%got_temp, error)
- endif
+
+ !call read_from_hdf5(eos_vars(itemp,:), eos_vars_label(itemp), group_id, got_temp, error)
+ !call read_from_hdf5(eos_vars(igasP,:), eos_vars_label(igasP), group_id, got, error)
+ 
 
  call read_from_hdf5(eos_vars(iX,:), eos_vars_label(iX), group_id, got_arrays%got_x, error)
  call read_from_hdf5(eos_vars(iZ,:), eos_vars_label(iZ), group_id, got_arrays%got_z, error)

@@ -165,6 +165,19 @@ ifeq ($(SETUP), disc)
     IND_TIMESTEPS=yes
 endif
 
+#       !!! CUSTOM !!!
+ifeq ($(SETUP), gravdisc)
+#   locally isothermal gas disc with self-gravity
+    DISC_VISCOSITY=yes
+    SETUPFILE= setup_disc.f90
+    ANALYSIS= utils_getneighbours.F90 analysis_disc_stresses.f90 
+    ISOTHERMAL=yes
+    GRAVITY=yes
+    KNOWN_SETUP=yes
+    MULTIRUNFILE= multirun.f90
+    IND_TIMESTEPS=yes
+endif
+
 ifeq ($(SETUP), grtde)
 #   tidal disruption event in general relativity
     SETUPFILE= setup_grtde.f90
@@ -403,6 +416,8 @@ ifeq ($(SETUP), sphereinbox)
     PERIODIC=yes
     SETUPFILE= velfield_fromcubes.f90 setup_sphereinbox.f90
     KNOWN_SETUP=yes
+    GRAVITY=yes
+    ISOTHERMAL=yes
 endif
 
 ifeq ($(SETUP), shock)
@@ -699,6 +714,82 @@ ifeq ($(SETUP), cluster)
     KNOWN_SETUP=yes
     MAXPTMASS=1000
     MAXP=3500000
+endif
+
+#       !!! CUSTOM !!!
+ifeq ($(SETUP), cloudclean)
+#   modelcular cloud
+    FPPFLAGS=
+    SETUPFILE= velfield_fromcubes.f90 setup_cloudclean.f90
+    MODFILE= moddump_default.f90
+    ANALYSIS= phantom_pdfs.o analysis_MWpdf.f90 #analysis_sinkmass.f90
+    ISOTHERMAL=yes
+    GRAVITY=yes
+    IND_TIMESTEPS=yes
+    KNOWN_SETUP=yes
+    MAXPTMASS=1000
+    MAXP=200000
+endif
+
+#       !!! CUSTOM !!!
+ifeq ($(SETUP), sphereonly)
+#   sphere setup
+    ISOTHERMAL=yes
+    PERIODIC=no
+    IND_TIMESTEPS=yes
+    GRAVITY=yes
+    SETUPFILE= velfield_fromcubes.f90 setup_sphere.f90
+    KNOWN_SETUP=yes
+endif
+
+#       !!! CUSTOM !!!
+ifeq ($(SETUP), cloud)
+#   modelcular cloud
+    FPPFLAGS=
+    SETUPFILE= velfield_fromcubes.f90 setup_cloud.f90
+    MODFILE= moddump_default.f90
+    ANALYSIS= phantom_pdfs.o analysis_MWpdf.f90 #analysis_sinkmass.f90
+    ISOTHERMAL=yes
+    GRAVITY=yes
+    IND_TIMESTEPS=yes
+    KNOWN_SETUP=yes
+    MAXPTMASS=1000
+    MAXP=3500000
+endif
+
+ifeq ($(SETUP), fentondisc)
+#   locally isothermal gas disc
+    DISC_VISCOSITY=yes
+    GRAVITY=yes
+    SETUPFILE= setup_disc.f90
+    ANALYSIS = utils_getneighbours.F90 utils_omp.F90 utils_summary.F90 ptmass.F90 analysis_clumpfind.F90
+    ISOTHERMAL=yes
+    #needs to be yes (ie not store internal energy) for ieos=8 (barotropic)
+    KNOWN_SETUP=yes
+    MULTIRUNFILE= multirun.f90
+    IND_TIMESTEPS=yes
+    STORE_TEMP=yes
+    #no capital 'YES'
+endif
+
+ifeq ($(SETUP), sphere)
+#   sphere setup
+    ISOTHERMAL=no
+    PERIODIC=no
+    IND_TIMESTEPS=yes
+    GRAVITY=yes
+    SETUPFILE= velfield_fromcubes.f90 setup_sphere.f90
+    KNOWN_SETUP=yes
+endif
+
+ifeq ($(SETUP), isosphere)
+#   initially isothermal sphere setup
+    ISOTHERMAL=yes
+    PERIODIC=no
+    IND_TIMESTEPS=yes
+    GRAVITY=yes
+    SETUPFILE= velfield_fromcubes.f90 setup_sphere.f90
+    KNOWN_SETUP=yes
 endif
 
 ifeq ($(SETUP), binary)

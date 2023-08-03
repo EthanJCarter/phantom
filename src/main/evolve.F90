@@ -33,6 +33,8 @@ contains
 subroutine evol(infile,logfile,evfile,dumpfile,flag)
  use io,               only:iprint,iwritein,id,master,iverbose,&
                             flush_warnings,nprocs,fatal,warning
+ use density,          only:specific_output, n_clumps, write_restart_file, read_restart_file, nlines, clump_pid, &
+                            clump_output_density, assign_values_from_restart, n_clumps_in_restart, restart_file_read_counter
  use timestep,         only:time,tmax,dt,dtmax,nmax,nout,nsteps,dtextforce,rhomaxnow,&
                             dtmax_ifactor,dtmax_ifactorWT,dtmax_dratio,check_dtmax_for_decrease,&
                             idtmax_n,idtmax_frac,idtmax_n_next,idtmax_frac_next
@@ -106,9 +108,12 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
 #endif
 
  integer, optional, intent(in)   :: flag
+ logical         :: file_exists,restart_run
+ integer         :: clump_ID,clump_particle_ID
+ real            :: next_density,time_in_restart_file
  character(len=*), intent(in)    :: infile
  character(len=*), intent(inout) :: logfile,evfile,dumpfile
- integer         :: i,noutput,noutput_dtmax,nsteplast,ncount_fulldumps
+ integer         :: i,noutput,noutput_dtmax,nsteplast,ncount_fulldumps,io_file
  real            :: dtnew,dtlast,timecheck,rhomaxold,dtmax_log_dratio
  real            :: tprint,tzero,dtmaxold,dtinject
  real(kind=4)    :: t1,t2,tcpu1,tcpu2,tstart,tcpustart
@@ -283,6 +288,49 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
 !--evolve data for one timestep
 !  for individual timesteps this is the shortest timestep
 !
+    INQUIRE(FILE="restart_file", EXIST=file_exists)
+    restart_run_sect: IF (file_exists .and. restart_file_read_counter == 0) then
+                  open(1, file='restart_file')
+                  read(1,*,iostat=io_file) n_clumps_in_restart, time_in_restart_file
+
+                  if (n_clumps_in_restart == 0) then
+                    ! No clumps in file, running specific_output with zero arrays
+                    call specific_output(-9,-4,100)
+                  else
+                    n_clumps = n_clumps_in_restart
+                    restart_file_read_counter = 1
+
+                    do
+                      open(1, file='restart_file')
+                      ! read(1,*,iostat=io_file) n_clumps_in_restart, time_in_restart_file
+                      read(1,*,iostat=io_file) clump_id,clump_particle_id,next_density
+
+                      clump_pid(clump_id) = clump_particle_ID
+                      clump_output_density(clump_id) = 10**next_density
+                      IF (io_file/=0) EXIT
+                    enddo
+                    ! Assign clump densities to array and run specific_output with these starting values
+                    call specific_output(-9,-4,100)
+
+                  endif
+                  close(1)
+                 ENDIF restart_run_sect
+
+                 ! If restart file has already been read
+                 IF (file_exists .and. restart_file_read_counter == 1) then
+                   ! call specific ouput with read in values
+                   call specific_output(-9,-4,100)
+                 endif
+
+
+
+                 IF (.not. file_exists )then
+                   ! Restart file does no exist yeat, this should only be called for timesteps
+                   ! before the first phantom dump is created.
+                  call specific_output(-9,-4,100)
+                 ENDIF
+
+
     call get_timings(t1,tcpu1)
     if ( use_sts ) then
        call step_sts(npart,nactive,time,dt,dtextforce,dtnew,iprint)
