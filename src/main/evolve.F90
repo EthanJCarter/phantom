@@ -288,8 +288,8 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
 !--evolve data for one timestep
 !  for individual timesteps this is the shortest timestep
 !
-    INQUIRE(FILE="restart_file", EXIST=file_exists)
-    restart_run_sect: IF (file_exists .and. restart_file_read_counter == 0) then
+    inquire(file="restart_file", exist=file_exists)
+    restart_run_sect: if (file_exists .and. restart_file_read_counter == 0) then
                   open(1, file='restart_file')
                   read(1,*,iostat=io_file) n_clumps_in_restart, time_in_restart_file
 
@@ -307,28 +307,28 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
 
                       clump_pid(clump_id) = clump_particle_ID
                       clump_output_density(clump_id) = 10**next_density
-                      IF (io_file/=0) EXIT
+                      if (io_file/=0) EXIT
                     enddo
                     ! Assign clump densities to array and run specific_output with these starting values
                     call specific_output(-9,-4,100)
 
                   endif
                   close(1)
-                 ENDIF restart_run_sect
+                 endif restart_run_sect
 
                  ! If restart file has already been read
-                 IF (file_exists .and. restart_file_read_counter == 1) then
+                 if (file_exists .and. restart_file_read_counter == 1) then
                    ! call specific ouput with read in values
                    call specific_output(-9,-4,100)
                  endif
 
 
 
-                 IF (.not. file_exists )then
+                 if (.not. file_exists )then
                    ! Restart file does no exist yeat, this should only be called for timesteps
                    ! before the first phantom dump is created.
                   call specific_output(-9,-4,100)
-                 ENDIF
+                 endif
 
 
     call get_timings(t1,tcpu1)
