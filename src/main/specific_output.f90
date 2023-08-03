@@ -38,8 +38,9 @@ module density
       if (n_clumps == 0 .and. time > dyn_time_inner_disc) then
         do i=1, npart
           rhoi = rhoh(xyzh(4,i),massoftype(igas))
-          den_min = exp_min
-            if ((rhoi *unit_density) > 1E-9) then
+          den_min = 1E1**exp_min
+          den_max = 1E1**exp_max
+            if ((rhoi *unit_density) > den_min) then
               clump_dens(1)= rhoi
               clump_pid(1) = i
               n_clumps = 1
@@ -74,11 +75,11 @@ module density
         endif
 
         if (n_clumps > 0 .and. time > dyn_time_inner_disc) then
-          iexp = -9
+          iexp = exp_min
           do i=1, npart
             if (.not. isdead_or_accreted(xyzh(4,i))) then ! i.e. if the particle is alive and hasn't been accreted by any sink
               rhoi = rhoh(xyzh(4,i),massoftype(igas))
-            if ((rhoi *unit_density) > 1E-9) then
+            if ((rhoi *unit_density) > den_min) then
               do k=1, n_clumps
                 distance2(k) = ((xyzh(1,i) - xyzh(1,clump_pid(k)))**2 &
                                 + (xyzh(2,i) - xyzh(2,clump_pid(k)))**2 &
@@ -176,7 +177,7 @@ module density
 
       do w = 1, n_clumps
 
-        if ((clump_dens(w) * unit_density) .GE. clump_output_density(w) .and. (clump_output_density(w) .LE. 1e-3 )) then
+        if ((clump_dens(w) * unit_density) .GE. clump_output_density(w) .and. (clump_output_density(w) .LE. den_max )) then
 
           runid = 'run1'
 
@@ -229,6 +230,7 @@ module density
       close(2)
     end subroutine write_restart_file
 
+    !-----DEPRECIATED-----
     subroutine read_restart_file()
       ! We need to read the restart file to initialise a resumed run. The following subroutine reads the
       ! restart_file and assigns the stored values to new arrays.
@@ -261,6 +263,8 @@ module density
 
     end subroutine read_restart_file
 
+
+    !-----DEPRECIATED-----
     subroutine assign_values_from_restart()
       integer :: temp,n,clump_particle_ID,io
       real :: time,next_density
