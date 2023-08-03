@@ -9,7 +9,7 @@ module density
  contains
 
 
-  subroutine specific_output(den_min,den_max,N)
+  subroutine specific_output(exp_min,exp_max)
     use timestep,  only:time
     use units,         only:unit_density
     use part,             only:igas,massoftype,xyzh,rhoh, npart, vxyzu, nptmass, xyzmh_ptmass,isdead_or_accreted
@@ -17,7 +17,7 @@ module density
     use io,   only:fatal
 
     integer :: count,density_check,a,density_new, fid
-    integer, intent (in) :: den_min,den_max,N
+    integer, intent (in) :: exp_min,exp_max
     logical :: file_exists
 
     character(len=30) :: format, clumps_and_sinks
@@ -25,8 +25,8 @@ module density
     character(len=200) ::dumpfile_extension, dumpfile_prefix,runid,particle_id, sub_file
     character(len=500) :: dumpfile, dumpfile_check,dumpfile_check_start
 
-    real  :: chosen, den,density_specifier
-    real , dimension(N) :: values
+    real  :: chosen, iexp, density_specifier
+    real , dimension(N) :: values !depreciated
     real :: dyn_time_inner_disc, particle_radius, keplerian_velocity, particle_velocity
     integer :: flag1,flag2, new_clump, away_from_sinks
     ! real, dimension(50) :: clump_dens
@@ -38,12 +38,13 @@ module density
       if (n_clumps == 0 .and. time > dyn_time_inner_disc) then
         do i=1, npart
           rhoi = rhoh(xyzh(4,i),massoftype(igas))
+          den_min = exp_min
             if ((rhoi *unit_density) > 1E-9) then
               clump_dens(1)= rhoi
               clump_pid(1) = i
               n_clumps = 1
-              den = den_min
-              clump_output_density(1) = 10.0**den
+              iexp = exp_min
+              clump_output_density(1) = 10.0**iexp
               write(clumps_and_sinks,'(A16,I3.3,A4)')"clumps_and_sinks",n_clumps, ".dat"
               open(newunit=fid,file=clumps_and_sinks,position='append')
               write(fid,*) "Number of clumps:", n_clumps
@@ -73,7 +74,7 @@ module density
         endif
 
         if (n_clumps > 0 .and. time > dyn_time_inner_disc) then
-          den = -9
+          iexp = -9
           do i=1, npart
             if (.not. isdead_or_accreted(xyzh(4,i))) then ! i.e. if the particle is alive and hasn't been accreted by any sink
               rhoi = rhoh(xyzh(4,i),massoftype(igas))
@@ -131,7 +132,7 @@ module density
 
               if (new_clump==1 .and. away_from_sinks==1) then
                 n_clumps = n_clumps + 1
-                clump_output_density(n_clumps) = 10.0**den
+                clump_output_density(n_clumps) = 10.0**iexp
                 clump_dens(n_clumps)= rhoi
                 clump_pid(n_clumps) = i
                 write(clumps_and_sinks,'(A16,I3.3,A4)')"clumps_and_sinks",n_clumps, ".dat"
