@@ -322,8 +322,6 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
                    call specific_output(-9,-4)
                  endif
 
-
-
                  if (.not. file_exists )then
                    ! Restart file does no exist yeat, this should only be called for timesteps
                    ! before the first phantom dump is created.
