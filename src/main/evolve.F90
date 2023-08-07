@@ -294,14 +294,16 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
                   read(1,*,iostat=io_file) n_clumps_in_restart, time_in_restart_file
 
                   if (n_clumps_in_restart == 0) then
+
                     ! No clumps in file, running specific_output with zero arrays
-                    call specific_output(-9,-4)
+                    call specific_output(-9,-3)
                   else
                     n_clumps = n_clumps_in_restart
                     restart_file_read_counter = 1
 
                     do
                       open(1, file='restart_file')
+
                       ! read(1,*,iostat=io_file) n_clumps_in_restart, time_in_restart_file
                       read(1,*,iostat=io_file) clump_id,clump_particle_id,next_density
 
@@ -309,8 +311,9 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
                       clump_output_density(clump_id) = 10**next_density
                       if (io_file/=0) exit
                     enddo
+
                     ! Assign clump densities to array and run specific_output with these starting values
-                    call specific_output(-9,-4)
+                    call specific_output(-9,-3)
 
                   endif
                   close(1)
@@ -319,13 +322,13 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
                  ! If restart file has already been read
                  if (file_exists .and. restart_file_read_counter == 1) then
                    ! call specific ouput with read in values
-                   call specific_output(-9,-4)
+                   call specific_output(-9,-3)
                  endif
 
                  if (.not. file_exists )then
                    ! Restart file does no exist yeat, this should only be called for timesteps
                    ! before the first phantom dump is created.
-                  call specific_output(-9,-4)
+                  call specific_output(-9,-3)
                  endif
 
 
