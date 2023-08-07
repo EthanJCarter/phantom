@@ -3,6 +3,11 @@ module density
 
  integer, public :: i,j,k,l,nlines, n_clumps_in_restart, clump_id, n_clumps
  real ,public :: selected_rho, new_exponent
+ real,public, dimension(50) ::  clump_output_density, clump_dens
+ integer,public, dimension(50) :: clump_pid
+ integer, public :: restart_file_read_counter = 0
+
+ public specific_output, write_restart_file, read_restart_file, assign_values_from_restart
 
  private
 
@@ -16,7 +21,7 @@ module density
     use readwrite_dumps,  only:write_fulldump
     use io,   only:fatal
 
-    integer :: count,density_check,a,density_new, fid
+    integer :: count,density_check,a,density_new, den_min, den_max, w
     integer, intent (in) :: exp_min,exp_max
     logical :: file_exists
 
@@ -26,13 +31,12 @@ module density
     character(len=500) :: dumpfile, dumpfile_check,dumpfile_check_start
 
     real  :: chosen, iexp, density_specifier
-    real , dimension(N) :: values !depreciated
+    !real , dimension(N) :: values !depreciated
     real :: dyn_time_inner_disc, particle_radius, keplerian_velocity, particle_velocity
     integer :: flag1,flag2, new_clump, away_from_sinks
-    ! real, dimension(50) :: clump_dens
     real :: rhoi
-    real, dimension(50) :: sink_flag_debug, clump_flag_debug
-    real, dimension(50) :: distance2, distance2_sinks
+    real, dimension(1000) :: sink_flag_debug, clump_flag_debug
+    real, dimension(1000) :: distance2, distance2_sinks
 
     dyn_time_inner_disc =(10.0**1.5) * (3.15E7/5.023E6)
       if (n_clumps == 0 .and. time > dyn_time_inner_disc) then
@@ -40,19 +44,19 @@ module density
           rhoi = rhoh(xyzh(4,i),massoftype(igas))
           den_min = 1E1**exp_min
           den_max = 1E1**exp_max
-            if ((rhoi *unit_density) > den_min) then
+            if ((rhoi *unit_density) > 1E-9) then
               clump_dens(1)= rhoi
               clump_pid(1) = i
               n_clumps = 1
               iexp = exp_min
               clump_output_density(1) = 10.0**iexp
               write(clumps_and_sinks,'(A16,I3.3,A4)')"clumps_and_sinks",n_clumps, ".dat"
-              open(newunit=fid,file=clumps_and_sinks,position='append')
-              write(fid,*) "Number of clumps:", n_clumps
-              write(fid,*) "Number of sinks:", nptmass
+              open(7228,file=clumps_and_sinks,position='append')
+              write(7228,*) "Number of clumps:", n_clumps
+              write(7228,*) "Number of sinks:", nptmass
               do k = 1, n_clumps
                 do j = 1, nptmass
-                  write(fid,*)'Clumps: ' // NEW_LINE('A'),&
+                  write(7228,*)'Clumps: ' // NEW_LINE('A'),&
                   k,',', &
                   clump_pid(k), &
                   clump_dens(k) * unit_density,',', &
@@ -67,7 +71,7 @@ module density
 
                 enddo
               enddo
-                 close(fid)
+                 close(7228)
 
                  exit
             endif
@@ -79,7 +83,7 @@ module density
           do i=1, npart
             if (.not. isdead_or_accreted(xyzh(4,i))) then ! i.e. if the particle is alive and hasn't been accreted by any sink
               rhoi = rhoh(xyzh(4,i),massoftype(igas))
-            if ((rhoi *unit_density) > den_min) then
+            if ((rhoi *unit_density) > 1E-9) then
               do k=1, n_clumps
                 distance2(k) = ((xyzh(1,i) - xyzh(1,clump_pid(k)))**2 &
                                 + (xyzh(2,i) - xyzh(2,clump_pid(k)))**2 &
@@ -137,11 +141,11 @@ module density
                 clump_dens(n_clumps)= rhoi
                 clump_pid(n_clumps) = i
                 write(clumps_and_sinks,'(A16,I3.3,A4)')"clumps_and_sinks",n_clumps, ".dat"
-                open(fid,file=clumps_and_sinks,position='append')
-                write(fid,*) "Number of clumps:", n_clumps
-                write(fid,*) "Number of sinks:", nptmass
+                open(7228,file=clumps_and_sinks,position='append')
+                write(7228,*) "Number of clumps:", n_clumps
+                write(7228,*) "Number of sinks:", nptmass
                 do k = 1, n_clumps
-                  write(fid,*) k,',', &
+                  write(7228,*) k,',', &
                   clump_pid(k), &
                   clump_dens(k) * unit_density,',', &
                   xyzh(1,clump_pid(k)),',', &
@@ -151,13 +155,13 @@ module density
                 enddo
 
                 do j = 1, nptmass
-                  write(fid,*)j,',', &
+                  write(7228,*)j,',', &
                   xyzmh_ptmass(1,j),',',&
                   xyzmh_ptmass(2,j),',',&
                   xyzmh_ptmass(3,j)
 
                 enddo
-                close(fid)
+                close(7228)
 
               endif
 
@@ -177,7 +181,7 @@ module density
 
       do w = 1, n_clumps
 
-        if ((clump_dens(w) * unit_density) .GE. clump_output_density(w) .and. (clump_output_density(w) .LE. den_max )) then
+        if ((clump_dens(w) * unit_density) .GE. clump_output_density(w) .and. (clump_output_density(w) .LE. 1E-3 )) then
 
           runid = 'run1'
 
