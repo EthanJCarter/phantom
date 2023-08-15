@@ -21,7 +21,7 @@ module density
     use readwrite_dumps,  only:write_fulldump
     use io,   only:fatal
 
-    integer :: count,density_check,a,density_new, den_min, den_max, w
+    integer :: count,density_check,a,density_new, w
     integer, intent (in) :: exp_min,exp_max
     logical :: file_exists
 
@@ -38,13 +38,11 @@ module density
     real, dimension(1000) :: sink_flag_debug, clump_flag_debug
     real, dimension(1000) :: distance2, distance2_sinks
 
-    dyn_time_inner_disc =(10.0**1.5) * (3.15E7/5.023E6)
+    dyn_time_inner_disc =(10.0**1.5) * (3.15E7/5.023E6) 
       if (n_clumps == 0 .and. time > dyn_time_inner_disc) then
         do i=1, npart
           rhoi = rhoh(xyzh(4,i),massoftype(igas))
-          den_min = 1E1**exp_min
-          den_max = 1E1**exp_max
-            if ((rhoi *unit_density) > 1E-9) then
+            if ((rhoi *unit_density) > exp_min) then
               clump_dens(1)= rhoi
               clump_pid(1) = i
               n_clumps = 1
@@ -56,14 +54,14 @@ module density
               write(7228,*) "Number of sinks:", nptmass
               do k = 1, n_clumps
                 do j = 1, nptmass
-                  write(7228,*)'Clumps: ' // NEW_LINE('A'),&
+                  write(7228,*)'Clumps: ' // NEW_LINE('A20'),&
                   k,',', &
                   clump_pid(k), &
                   clump_dens(k) * unit_density,',', &
                   xyzh(1,clump_pid(k)),',', &
                   xyzh(2,clump_pid(k)),',', &
-                  xyzh(3,clump_pid(k)), NEW_LINE('A'), &
-                  'Sinks: ' // NEW_LINE('A'),&
+                  xyzh(3,clump_pid(k)), NEW_LINE('A20'), &
+                  "Sinks: " // NEW_LINE('A'),&
                   j,',', &
                   xyzmh_ptmass(1,j),',',&
                   xyzmh_ptmass(2,j),',',&
@@ -83,7 +81,7 @@ module density
           do i=1, npart
             if (.not. isdead_or_accreted(xyzh(4,i))) then ! i.e. if the particle is alive and hasn't been accreted by any sink
               rhoi = rhoh(xyzh(4,i),massoftype(igas))
-            if ((rhoi *unit_density) > 1E-9) then
+            if ((rhoi *unit_density) > exp_min) then !If above dens_min, check if close to other clumps or sinks
               do k=1, n_clumps
                 distance2(k) = ((xyzh(1,i) - xyzh(1,clump_pid(k)))**2 &
                                 + (xyzh(2,i) - xyzh(2,clump_pid(k)))**2 &
@@ -101,6 +99,7 @@ module density
               flag1 = 1
               flag2 = 1
               do k=1,n_clumps
+                !if within a certain distance (100 code units?)
                 if (distance2(k) < 100) then
                   flag1 = 0
                   exit
@@ -134,12 +133,18 @@ module density
                 enddo
               endif
 
-
+              !if it is new and far away enough from existing sinks
               if (new_clump==1 .and. away_from_sinks==1) then
+                !Add to clump count
                 n_clumps = n_clumps + 1
+                !redefine output density - is this needed?
                 clump_output_density(n_clumps) = 10.0**iexp
+
+                !set clump density and pid to current particle values
                 clump_dens(n_clumps)= rhoi
                 clump_pid(n_clumps) = i
+                !Write-out informations to clumps_and_sinks.dat
+                !Writes a new file everytime there is a new clump
                 write(clumps_and_sinks,'(A16,I3.3,A4)')"clumps_and_sinks",n_clumps, ".dat"
                 open(7228,file=clumps_and_sinks,position='append')
                 write(7228,*) "Number of clumps:", n_clumps
@@ -165,11 +170,12 @@ module density
 
               endif
 
+              !If it is NOT a new clump and is close enough to an existing clump
               if (new_clump == 0) then
                 do k=1,n_clumps
                   if (rhoi > clump_dens(k) .and. (distance2(k) < 1)) then ! check is i is alive
-                    clump_dens(k)= rhoi
-                    clump_pid(k) = i
+                    clump_dens(k)= rhoi !Define new clump dens as particle dens
+                    clump_pid(k) = i !Define clump_pid as current particle id
 
                   endif
                 enddo
@@ -181,7 +187,8 @@ module density
 
       do w = 1, n_clumps
 
-        if ((clump_dens(w) * unit_density) .GE. clump_output_density(w) .and. (clump_output_density(w) .LE. 1E-3 )) then
+        !If the clump density is between dens_min and dens_max, write out a fulldump
+        if ((clump_dens(w) * unit_density) .GE. clump_output_density(w) .and. (clump_output_density(w) .LE. exp_max )) then
 
           runid = 'run1'
 
@@ -201,10 +208,6 @@ module density
           close(499)
           new_exponent = (log10(clump_output_density(w)) + 1)
           clump_output_density(w) = 10.**new_exponent
-          ! if (new_exponent == -7) then
-          !   write(*,*)
-          !   stop 0
-          ! endif
 
         endif
 
