@@ -7,7 +7,7 @@ module density
  integer,public, dimension(50) :: clump_pid
  integer, public :: restart_file_read_counter = 0
 
- public specific_output, write_restart_file, read_restart_file, assign_values_from_restart
+ public specific_output, write_restart_file, read_restart_file, assign_values_from_restart, read_params_file
 
  private
 
@@ -22,7 +22,7 @@ module density
     use io,   only:fatal
 
     integer :: count,density_check,a,density_new, w
-    integer, intent (in) :: exp_min,exp_max
+    real, intent (in) :: exp_min,exp_max
     logical :: file_exists
 
     character(len=30) :: format, clumps_and_sinks
@@ -69,7 +69,7 @@ module density
 
                 enddo
               enddo
-                 close(7228)
+                close(7228)
 
                  exit
             endif
@@ -188,7 +188,7 @@ module density
       do w = 1, n_clumps
 
         !If the clump density is between dens_min and dens_max, write out a fulldump
-        if ((clump_dens(w) * unit_density) .GE. clump_output_density(w) .and. (clump_output_density(w) .LE. exp_max )) then
+        if ((clump_dens(w) * unit_density) .GE. 1E-9 .and. (clump_output_density(w) .LE. 1E-3 )) then
 
           runid = 'run1'
 
@@ -216,7 +216,6 @@ module density
     end subroutine specific_output
 
 
-
     subroutine write_restart_file()
       ! Write a file containing the number of clumps and time of creation with clumpID, clumpPID and next output density
       ! for each clump. This file will be read on a restart to continue clump tracking where a previous run left off.
@@ -236,6 +235,52 @@ module density
 
       close(2)
     end subroutine write_restart_file
+
+    function read_params_file(line1,line2) result(out_vals)
+    !Obtain lower and upper limits for tracking from params file
+
+      integer, intent(in) :: line1, line2 !Currently 3 and 5 for lower and upper exps
+      character(len=128) :: line !current line as string
+      integer :: fid, ierr !Unit ID and input error flag
+      real(kind=8) :: out1, out2 !Output args so we only call this once
+      real, dimension(2) :: out_vals !Output args array
+
+      open(newunit=fid, file=trim('tracking.params.dat'), status='old', action='read', iostat=ierr)
+      if (ierr/=0) then
+        write(*,*) "STOP: error opening file"
+        stop
+      endif
+
+      do i=1, line2
+
+        read(fid, '(A)', iostat=ierr) line
+        if (ierr/=0) then
+          write(*,*) "STOP: error reading line"
+          stop
+        elseif (i == line1) then !Read expected line for low den
+          read(line, *) out1
+        elseif (i==line2) then !Read expected line for high den
+          read(line, *) out2
+        endif
+
+      enddo
+
+      ! Convert the read string to a real number
+      !read(line, *) value
+
+      !write(*, *) "Line ", "     :  ", trim(line)
+
+      !Display the value converted to real
+      !write(*, *) "Read value:", value
+
+      close(fid)
+
+      out_vals(1) = out1
+      out_vals(2) = out2
+
+      return
+
+    end function read_params_file
 
     !-----DEPRECIATED-----
     subroutine read_restart_file()
