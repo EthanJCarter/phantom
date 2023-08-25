@@ -236,52 +236,6 @@ module density
       close(2)
     end subroutine write_restart_file
 
-    function read_params_file(line1,line2) result(out_vals)
-    !Obtain lower and upper limits for tracking from params file
-
-      integer, intent(in) :: line1, line2 !Currently 3 and 5 for lower and upper exps
-      character(len=128) :: line !current line as string
-      integer :: fid, ierr !Unit ID and input error flag
-      real(kind=8) :: out1, out2 !Output args so we only call this once
-      real, dimension(2) :: out_vals !Output args array
-
-      open(newunit=fid, file=trim('tracking.params.dat'), status='old', action='read', iostat=ierr)
-      if (ierr/=0) then
-        write(*,*) "STOP: error opening file"
-        stop
-      endif
-
-      do i=1, line2
-
-        read(fid, '(A)', iostat=ierr) line
-        if (ierr/=0) then
-          write(*,*) "STOP: error reading line"
-          stop
-        elseif (i == line1) then !Read expected line for low den
-          read(line, *) out1
-        elseif (i==line2) then !Read expected line for high den
-          read(line, *) out2
-        endif
-
-      enddo
-
-      ! Convert the read string to a real number
-      !read(line, *) value
-
-      !write(*, *) "Line ", "     :  ", trim(line)
-
-      !Display the value converted to real
-      !write(*, *) "Read value:", value
-
-      close(fid)
-
-      out_vals(1) = out1
-      out_vals(2) = out2
-
-      return
-
-    end function read_params_file
-
     !-----DEPRECIATED-----
     subroutine read_restart_file()
       ! We need to read the restart file to initialise a resumed run. The following subroutine reads the
@@ -337,5 +291,51 @@ module density
       close(1)
 
     end subroutine assign_values_from_restart
+
+    function read_params_file(line1,line2) result(out_vals)
+      !Obtain lower and upper limits for tracking from params file
+  
+        integer, intent(in) :: line1, line2 !Currently 3 and 5 for lower and upper exps
+        character(len=128) :: line !current line as string
+        integer :: fid, ierr !Unit ID and input error flag
+        real(kind=8) :: out1, out2 !Output args so we only call this once
+        real, dimension(2) :: out_vals !Output args array
+  
+        open(newunit=fid, file=trim('tracking.params.dat'), status='old', action='read', iostat=ierr)
+        if (ierr/=0) then
+          write(*,*) "STOP: error opening file"
+          stop
+        endif
+  
+        do i=1, line2
+  
+          read(fid, '(A)', iostat=ierr) line
+          if (ierr/=0) then
+            write(*,*) "STOP: error reading line"
+            stop
+          elseif (i == line1) then !Read expected line for low den
+            read(line, *) out1
+          elseif (i==line2) then !Read expected line for high den
+            read(line, *) out2
+          endif
+  
+        enddo
+  
+        ! Convert the read string to a real number
+        !read(line, *) value
+  
+        !write(*, *) "Line ", "     :  ", trim(line)
+  
+        !Display the value converted to real
+        !write(*, *) "Read value:", value
+  
+        close(fid)
+  
+        out_vals(1) = out1
+        out_vals(2) = out2
+  
+        return
+  
+      end function read_params_file
 
   end module density
