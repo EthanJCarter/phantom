@@ -46,8 +46,7 @@ module density
               clump_dens(1)= rhoi
               clump_pid(1) = i
               n_clumps = 1
-              iexp = exp_min
-              clump_output_density(1) = 10.0**iexp
+              clump_output_density(1) = exp_min
               write(clumps_and_sinks,'(A16,I3.3,A4)')"clumps_and_sinks",n_clumps, ".dat"
               open(7228,file=clumps_and_sinks,position='append')
               write(7228,*) "Number of clumps:", n_clumps
@@ -188,8 +187,10 @@ module density
       do w = 1, n_clumps
 
         !If the clump density is between dens_min and dens_max, write out a fulldump
-        if ((clump_dens(w) * unit_density) .GE. 1E-9 .and. (clump_output_density(w) .LE. 1E-3 )) then
+        if ((clump_dens(w) * unit_density) .GE. clump_output_density(w) .and. (clump_output_density(w) .LE. exp_max )) then
 
+
+          print*, "Trying to write up..."
           runid = 'run1'
 
           write(dumpfile_extension, ' (I2)')int(abs(log10(clump_output_density(w))) * 10)
@@ -208,6 +209,10 @@ module density
           close(499)
           new_exponent = (log10(clump_output_density(w)) + 1)
           clump_output_density(w) = 10.**new_exponent
+
+        !else 
+          !print*, clump_output_density(w)
+          !print*,exp_max
 
         endif
 
