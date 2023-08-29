@@ -112,6 +112,7 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
  logical         :: file_exists,restart_run
  integer         :: clump_ID,clump_particle_ID
  real            :: next_density,time_in_restart_file,den_min,den_max
+ real            :: t_clump = 500
  real, dimension(2) :: out_values
  character(len=*), intent(in)    :: infile
  character(len=*), intent(inout) :: logfile,evfile,dumpfile
@@ -302,52 +303,54 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
     !print*, time
     !print*, "============================"
 
-    inquire(file="restart_file", exist=file_exists)
-    restart_run_sect: if (file_exists .and. restart_file_read_counter == 0) then !If we have a restart file and it has not been read-in yet
-                  open(1, file='restart_file') !open file with unit ID of 1
-                  read(1,*,iostat=io_file) n_clumps_in_restart, time_in_restart_file !read number of clumps and time from restart
+    if (time .GE. t_clump) then
 
-                  if (n_clumps_in_restart == 0) then !If read-in but no clumps yet
+       inquire(file="restart_file", exist=file_exists)
+       restart_run_sect: if (file_exists .and. restart_file_read_counter == 0) then !If we have a restart file and it has not been read-in yet
+                      open(1, file='restart_file') !open file with unit ID of 1
+                      read(1,*,iostat=io_file) n_clumps_in_restart, time_in_restart_file !read number of clumps and time from restart
 
-                    !No clumps in file, running specific_output with zero arrays, i.e. standard array
-                    !with all zeroes as we have no clump data yet.
-                    call specific_output(den_min,den_max)
+                      if (n_clumps_in_restart == 0) then !If read-in but no clumps yet
+                         !No clumps in file, running specific_output with zero arrays, i.e. standard array
+                         !with all zeroes as we have no clump data yet.
+                         call specific_output(den_min,den_max)
 
-                  else !If we do have a clump
-                    n_clumps = n_clumps_in_restart !Use our identifier for the total number of clumps
-                    restart_file_read_counter = 1  !Set our variable to check if we have read in the
-                                                   !restart file to True.
+                      else !If we do have a clump
+                         n_clumps = n_clumps_in_restart !Use our identifier for the total number of clumps
+                         restart_file_read_counter = 1  !Set our variable to check if we have read in the
+                                                       !restart file to True.
 
-                    do i=1, n_clumps
-                      !open(1, file='restart_file') !Open up our...restart file again? Is this needed?
+                      do i=1, n_clumps
+                         !open(1, file='restart_file') !Open up our...restart file again? Is this needed?
+                         !Read in the clump_id, particle_id and the next target density
+                         read(1,*,iostat=io_file) clump_id,clump_particle_id,next_density
 
-                      !Read in the clump_id, particle_id and the next target density
-                      read(1,*,iostat=io_file) clump_id,clump_particle_id,next_density
+                         clump_pid(clump_id) = clump_particle_ID !Assign clump particle ID using clump as index
+                         clump_output_density(clump_id) = 10**next_density
+                         print "(A30, E10.3)", "next clump density: ", next_density
+                         !if (io_file/=0) exit !exists at last entry, try with a real exit condition
+                      enddo
 
-                      clump_pid(clump_id) = clump_particle_ID !Assign clump particle ID using clump as index
-                      clump_output_density(clump_id) = 10**next_density
-                      print "(A30, E10.3)", "next clump density: ", next_density
-                      !if (io_file/=0) exit !exists at last entry, try with a real exit condition
-                    enddo
+                      ! Assign clump densities to array and run specific_output with these starting values
+                      call specific_output(den_min,den_max)
 
-                    ! Assign clump densities to array and run specific_output with these starting values
-                    call specific_output(den_min,den_max)
+                      endif
+                      close(1)
+                      endif restart_run_sect
 
-                  endif
-                  close(1)
-                 endif restart_run_sect
+                      ! If restart file has already been read
+                      if (file_exists .and. restart_file_read_counter == 1) then
+                         ! call specific ouput with read in values
+                         call specific_output(den_min,den_max)
+                      endif
 
-                 ! If restart file has already been read
-                 if (file_exists .and. restart_file_read_counter == 1) then
-                   ! call specific ouput with read in values
-                   call specific_output(den_min,den_max)
-                 endif
+                      if (.not. file_exists )then
+                         ! Restart file does no exist yet, this should only be called for timesteps
+                         ! before the first phantom dump is created.
+                         call specific_output(den_min,den_max)
+                      endif
 
-                 if (.not. file_exists )then
-                   ! Restart file does no exist yet, this should only be called for timesteps
-                   ! before the first phantom dump is created.
-                  call specific_output(den_min,den_max)
-                 endif
+    endif
 
 
     call get_timings(t1,tcpu1)
