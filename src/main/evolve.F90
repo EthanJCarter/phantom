@@ -303,6 +303,7 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
     !print*, time
     !print*, "============================"
 
+    !Only call specific output if time has passed a certain thershold/interval
     if (time .GE. t_clump) then
 
        inquire(file="restart_file", exist=file_exists)
@@ -349,6 +350,8 @@ subroutine evol(infile,logfile,evfile,dumpfile,flag)
                          ! before the first phantom dump is created.
                          call specific_output(den_min,den_max)
                       endif
+
+                      t_clump = t_clump + 100
 
     endif
 
