@@ -1524,7 +1524,7 @@ module eos
     if (.not.imatch .and. ieos== 8) call read_options_eos_barotropic(name,valstring,imatch,igotall_barotropic,ierr)
     if (.not.imatch .and. ieos== 9) call read_options_eos_piecewise( name,valstring,imatch,igotall_piecewise, ierr)
     if (.not.imatch .and. ieos==20) call read_options_eos_gasradrec( name,valstring,imatch,igotall_gasradrec, ierr)
-    if (.not.imatch .and. ieos== 25) call read_options_eos_barotropic_iso(name,valstring,imatch,igotall_barotropic,ierr)
+    if (.not.imatch .and. ieos== 22) call read_options_eos_barotropic_iso(name,valstring,imatch,igotall_barotropic,ierr)
    
     !--make sure we have got all compulsory options (otherwise, rewrite input file)
     igotall = (ngot >= 1) .and. igotall_piecewise .and. igotall_barotropic .and. igotall_gasradrec
@@ -1535,4 +1535,3 @@ module eos
    !-----------------------------------------------------------------------
    
    end module eos
-   
