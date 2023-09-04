@@ -51,6 +51,7 @@ module eos
     implicit none
     integer, parameter, public :: maxeos = 22
     real,               public :: polyk, polyk2, gamma
+    real,               public :: polyk_iso ! polyk_constant for isothermal part of case 22
     real,               public :: qfacdisc = 0.75, qfacdisc2 = 0.75
     logical,            public :: extract_eos_from_hdr = .false.
     integer,            public :: isink = 0.
