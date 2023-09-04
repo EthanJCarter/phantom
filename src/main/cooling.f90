@@ -2,7 +2,7 @@
 ! The Phantom Smoothed Particle Hydrodynamics code, by Daniel Price et al. !
 ! Copyright (c) 2007-2023 The Authors (see AUTHORS)                        !
 ! See LICENCE file for usage and distribution conditions                   !
-! http://phantomsph.github.io/                                             !
+! http://phantomsph.bitbucket.io/                                          !
 !--------------------------------------------------------------------------!
 module cooling
 !
@@ -15,6 +15,7 @@ module cooling
 !     5 = Koyama & Inutuska (2002)        [explicit]
 !     6 = Koyama & Inutuska (2002)        [implicit]
 !     7 = Gammie cooling power law        [explicit]
+!     8 = Stamatellos et al. (2007)       [implicit]
 !
 ! :References:
 !   Gail & Sedlmayr textbook Physics and chemistry of Circumstellar dust shells
@@ -27,8 +28,9 @@ module cooling
 !   - icooling : *cooling function (0=off, 1=cooling library (step), 2=cooling library (force),*
 !
 ! :Dependencies: chem, cooling_gammie, cooling_gammie_PL, cooling_ism,
-!   cooling_koyamainutsuka, cooling_molecular, cooling_solver, dim, eos,
-!   infile_utils, io, options, part, physcon, timestep, units
+!   cooling_koyamainutsuka, cooling_molecular, cooling_solver,
+!   cooling_stamatellos, dim, eos, eos_stamatellos, infile_utils, io,
+!   options, part, physcon, timestep, units, viscosity
 !
 
  use options,  only:icooling
@@ -61,16 +63,20 @@ subroutine init_cooling(id,master,iprint,ierr)
  use dim,               only:maxvxyzu,h2chemistry
  use units,             only:unit_ergg
  use physcon,           only:mass_proton_cgs,kboltz
- use io,                only:error
- use eos,               only:gamma,gmw
+ use io,                only:error,fatal,warning
+ use eos,               only:gamma,gmw,ieos
  use cooling_ism,       only:init_cooling_ism
  use chem,              only:init_chem
  use cooling_molecular,      only:init_cooling_molec
  use cooling_koyamainutsuka, only:init_cooling_KI02
  use cooling_solver,         only:init_cooling_solver
+ use eos_stamatellos,   only:read_optab,eos_file
+ use cooling_stamatellos, only: init_star,od_method
+ use viscosity,         only:irealvisc
 
  integer, intent(in)  :: id,master,iprint
  integer, intent(out) :: ierr
+ logical :: ex
 
  cooling_in_step = .true.
  ierr = 0
@@ -80,6 +86,16 @@ subroutine init_cooling(id,master,iprint,ierr)
     call init_cooling_ism()
  else
     select case(icooling)
+    case(8)
+       if (ieos /= 21 .and. ieos /=2)  call fatal('cooling','icooling=8 requires ieos=21',&
+            var='ieos',ival=ieos)
+       if (irealvisc > 0 .and. od_method == 2) call warning('cooling',&
+            'Using real viscosity will affect optical depth estimate',var='irealvisc',ival=irealvisc)
+       inquire(file=eos_file,exist=ex)
+       if (.not. ex ) call fatal('cooling','file not found',var=eos_file)
+       if (ieos == 2)  call read_optab(eos_file,ierr)
+       if (ierr > 0) call fatal('cooling','Failed to read EOS file',var='ierr',ival=ierr)
+       call init_star()
     case(6)
        call init_cooling_KI02(ierr)
     case(5)
@@ -107,6 +123,8 @@ subroutine init_cooling(id,master,iprint,ierr)
        ufloor = 3.0*kboltz*Tfloor/(2.0*gmw*mass_proton_cgs)/unit_ergg
     endif
     if (maxvxyzu < 4) ierr = 1
+ elseif (icooling == 8) then
+    ufloor = 0. ! because we calculate & use umin separately
  else
     ufloor = 0.
  endif
@@ -118,7 +136,7 @@ end subroutine init_cooling
 !   this routine returns the effective cooling rate du/dt
 !
 !-----------------------------------------------------------------------
-subroutine energ_cooling(xi,yi,zi,ui,dudt,rho,dt,Tdust_in,mu_in,gamma_in,K2_in,kappa_in)
+subroutine energ_cooling(xi,yi,zi,ui,dudt,rho,dt,Tdust_in,mu_in,gamma_in,K2_in,kappa_in,dudti_sph,part_id)
  use io,      only:fatal
  use eos,     only:gmw,gamma
  use physcon, only:Rg
@@ -128,9 +146,12 @@ subroutine energ_cooling(xi,yi,zi,ui,dudt,rho,dt,Tdust_in,mu_in,gamma_in,K2_in,k
  use cooling_solver,         only:energ_cooling_solver
  use cooling_koyamainutsuka, only:cooling_KoyamaInutsuka_explicit,&
                                   cooling_KoyamaInutsuka_implicit
+ use cooling_stamatellos,    only:cooling_S07
 
  real, intent(in)           :: xi,yi,zi,ui,rho,dt                  ! in code units
  real, intent(in), optional :: Tdust_in,mu_in,gamma_in,K2_in,kappa_in   ! in cgs
+ real, intent(in), optional :: dudti_sph ! in code units
+ integer, intent(in),optional :: part_id
  real, intent(out)          :: dudt                                ! in code units
  real                       :: mu,polyIndex,T_on_u,Tgas,Tdust,K2,kappa
 
@@ -149,6 +170,8 @@ subroutine energ_cooling(xi,yi,zi,ui,dudt,rho,dt,Tdust_in,mu_in,gamma_in,K2_in,k
  if (present(kappa_in)) kappa     = kappa_in
 
  select case (icooling)
+ case (8)
+    call cooling_S07(rho,ui,dudt,xi,yi,zi,Tfloor,dudti_sph,dt,part_id)
  case (6)
     call cooling_KoyamaInutsuka_implicit(ui,rho,dt,dudt)
  case (5)
@@ -178,6 +201,7 @@ subroutine write_options_cooling(iunit)
  use cooling_gammie_PL,  only:write_options_cooling_gammie_PL
  use cooling_molecular, only:write_options_molecularcooling
  use cooling_solver,    only:write_options_cooling_solver
+ use cooling_stamatellos, only:write_options_cooling_stamatellos
  integer, intent(in) :: iunit
 
  write(iunit,"(/,a)") '# options controlling cooling'
@@ -187,7 +211,7 @@ subroutine write_options_cooling(iunit)
     if (icooling > 0) call write_options_cooling_ism(iunit)
  else
     call write_inopt(icooling,'icooling','cooling function (0=off, 1=cooling library (step), 2=cooling library (force),'// &
-                     '3=Gammie, 5,6=KI02, 7=powerlaw)',iunit)
+         '3=Gammie, 5,6=KI02, 7=powerlaw, 8=stamatellos)',iunit)
     select case(icooling)
     case(0,4,5,6)
        ! do nothing
@@ -195,6 +219,8 @@ subroutine write_options_cooling(iunit)
        call write_options_cooling_gammie(iunit)
     case(7)
        call write_options_cooling_gammie_PL(iunit)
+    case(8)
+       call write_options_cooling_stamatellos(iunit)
     case default
        call write_options_cooling_solver(iunit)
     end select
@@ -216,11 +242,12 @@ subroutine read_options_cooling(name,valstring,imatch,igotall,ierr)
  use cooling_ism,       only:read_options_cooling_ism
  use cooling_molecular, only:read_options_molecular_cooling
  use cooling_solver,    only:read_options_cooling_solver
+ use cooling_stamatellos, only:read_options_cooling_stamatellos
  character(len=*), intent(in)  :: name,valstring
  logical,          intent(out) :: imatch,igotall
  integer,          intent(out) :: ierr
  integer, save :: ngot = 0
- logical :: igotallism,igotallmol,igotallgammie,igotallgammiePL,igotallfunc
+ logical :: igotallism,igotallmol,igotallgammie,igotallgammiePL,igotallfunc,igotallstam
 
  imatch        = .true.
  igotall       = .false.  ! cooling options are compulsory
@@ -228,6 +255,7 @@ subroutine read_options_cooling(name,valstring,imatch,igotall,ierr)
  igotallmol    = .true.
  igotallgammie = .true.
  igotallfunc   = .true.
+ igotallstam   = .true.
 
  select case(trim(name))
  case('icooling')
@@ -251,6 +279,8 @@ subroutine read_options_cooling(name,valstring,imatch,igotall,ierr)
           call read_options_cooling_gammie(name,valstring,imatch,igotallgammie,ierr)
        case(7)
           call read_options_cooling_gammie_PL(name,valstring,imatch,igotallgammiePL,ierr)
+       case(8)
+          call read_options_cooling_stamatellos(name,valstring,imatch,igotallstam,ierr)
        case default
           call read_options_cooling_solver(name,valstring,imatch,igotallfunc,ierr)
        end select
@@ -259,7 +289,7 @@ subroutine read_options_cooling(name,valstring,imatch,igotall,ierr)
  ierr = 0
  if (h2chemistry .and. igotallism .and. ngot >= 2) then
     igotall = .true.
- elseif (icooling >= 0 .and. ngot >= 2 .and. igotallgammie .and. igotallfunc) then
+ elseif (icooling >= 0 .and. ngot >= 2 .and. igotallgammie .and. igotallfunc .and. igotallstam) then
     igotall = .true.
  else
     igotall = .false.
