@@ -110,7 +110,7 @@ subroutine evol(infile,logfile,evfile,dumpfile)
 
  character(len=*), intent(in)    :: infile
  character(len=*), intent(inout) :: logfile,evfile,dumpfile
- integer         :: i,noutput,noutput_dtmax,nsteplast,ncount_fulldump,iofile
+ integer         :: i,noutput,noutput_dtmax,nsteplast,ncount_fulldumps,io_file
  logical         :: file_exists,restart_run
  integer         :: clump_ID,clump_particle_ID
  real            :: next_density,time_in_restart_file,den_min,den_max
