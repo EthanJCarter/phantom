@@ -101,7 +101,7 @@ ifeq ($(SYSTEM), ozstar)
     WALLTIME='168:00:00'
 endif
 
-ifeq ($(SYSTEM), nt)
+ifeq ($(SYSTEM), ozstar2)
 #   ozstar milan cluster
     include Makefile_defaults_aocc
     OMPFLAGS=-fopenmp
@@ -113,10 +113,11 @@ endif
 ifeq ($(SYSTEM), rusty)
 #   Flatiron CCA rusty cluster rome node, AMD EPYC 7742
     include Makefile_defaults_ifort
-    OMPFLAGS=-qopenmp
+    FFLAGS= -Ofast -mcmodel=medium -march=znver2
     NOMP=64
-    QSYS=slurm
-    QPARTITION='gen'
+    QSYS = slurm
+    QNAME='rome'
+    QPARTITION='cca'
     WALLTIME='168:00:00'
 endif
 
@@ -127,7 +128,7 @@ ifeq ($(SYSTEM), ipopeyearch)
     NOMP=64
     QSYS = slurm
     QNAME='icelake'
-    QPARTITION='gen'
+    QPARTITION='cca'
     WALLTIME='168:00:00'
 endif
 

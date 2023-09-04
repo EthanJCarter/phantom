@@ -8,10 +8,9 @@ This section contains some examples of physical problems that you can solve with
    :caption: Contents:
 
    mdot
-   disc
+   softstar
    binary
    star
-   softstar
    dustsettle
    dustgrowth
    density
