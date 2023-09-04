@@ -29,3 +29,4 @@ data/velfield/cube_v3.dat
 data/velfield/cube_v2.dat
 data/velfield/cube_v1.dat
 build/Makefile_setups
+src/main/eos copy.f90
