@@ -114,7 +114,7 @@ subroutine evol(infile,logfile,evfile,dumpfile)
  logical         :: file_exists,restart_run
  integer         :: clump_ID,clump_particle_ID
  real            :: next_density,time_in_restart_file,den_min,den_max
- real            :: t_clump = 500
+ real            :: t_clump = 1000
  real, dimension(2) :: out_values
  real            :: dtnew,dtlast,timecheck,rhomaxold,dtmax_log_dratio
  real            :: tprint,tzero,dtmaxold,dtinject
@@ -342,7 +342,7 @@ subroutine evol(infile,logfile,evfile,dumpfile)
                         call specific_output(den_min,den_max)
                      endif
 
-                     t_clump = t_clump + 100
+                     t_clump = t_clump + 500
 
    endif
 
