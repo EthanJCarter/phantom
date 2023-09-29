@@ -18,8 +18,8 @@ module eos_stamatellos
 !
 
  implicit none
- real,allocatable,public :: optable(:,:,:)
- real,allocatable,public :: Gpot_cool(:), gradP_cool(:) !==gradP/rho
+ real(kind=8),allocatable,public :: optable(:,:,:)
+ real(kind=8),allocatable,public :: Gpot_cool(:), gradP_cool(:) !==gradP/rho
  character(len=25), public :: eos_file= 'myeos.dat' !default name of tabulated EOS file
 !integer,public :: iunitst=19
  integer,save :: nx,ny ! dimensions of optable read in
@@ -78,16 +78,16 @@ end subroutine read_optab
 ! Main subroutine for interpolating tables to get EOS values
 !
 subroutine getopac_opdep(ui,rhoi,kappaBar,kappaPart,Ti,gmwi)
- real, intent(in)  :: ui,rhoi
- real, intent(out) :: kappaBar,kappaPart,Ti,gmwi
+ real(kind=8), intent(in)  :: ui,rhoi
+ real(kind=8), intent(out) :: kappaBar,kappaPart,Ti,gmwi
 
  integer i,j
- real m,c
- real kbar1,kbar2
- real kappa1,kappa2
- real Tpart1,Tpart2
- real gmw1,gmw2
- real ui_, rhoi_,rhomin,umin
+ real(kind=8) m,c
+ real(kind=8) kbar1,kbar2
+ real(kind=8) kappa1,kappa2
+ real(kind=8) Tpart1,Tpart2
+ real(kind=8) gmw1,gmw2
+ real(kind=8) ui_, rhoi_,rhomin,umin
 
  rhomin = OPTABLE(1,1,1)
  umin = OPTABLE(1,1,3)
@@ -185,13 +185,13 @@ subroutine getopac_opdep(ui,rhoi,kappaBar,kappaPart,Ti,gmwi)
 end subroutine getopac_opdep
 
 subroutine getintenerg_opdep(Teqi, rhoi, ueqi)
- real, intent(out) :: ueqi
- real, intent(in)    :: Teqi,rhoi
+ real(kind=8), intent(out) :: ueqi
+ real(kind=8), intent(in)    :: Teqi,rhoi
 
- real u1, u2
- real m, c
+ real(kind=8) u1, u2
+ real(kind=8) m, c
  integer i, j
- real rhoi_
+ real(kind=8) rhoi_
 
  ! interpolate through OPTABLE to obtain equilibrium internal energy
 
