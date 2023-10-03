@@ -72,6 +72,7 @@ subroutine read_optab(eos_file,ierr)
     enddo
  enddo
  print *, 'nx,ny=', nx, ny
+ close(10)
 end subroutine read_optab
 
 !
