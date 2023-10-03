@@ -182,7 +182,7 @@ subroutine getopac_opdep(ui,rhoi,kappaBar,kappaPart,Ti,gmwi)
 
  gmwi = m*rhoi_ + c
 
- if (rhoi_ > 1E-9) then
+ if (rhoi_ > 1E-10) then
    print*, '============================'
    print*, kappaPart,kappaBar,Ti,gmwi
    print*, '============================'
