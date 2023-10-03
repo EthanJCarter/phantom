@@ -182,6 +182,12 @@ subroutine getopac_opdep(ui,rhoi,kappaBar,kappaPart,Ti,gmwi)
 
  gmwi = m*rhoi_ + c
 
+ if (rhoi_ > 1E-9) then
+   print*, '============================'
+   print*, kappaPart,kappaBar,Ti,gmwi
+   print*, '============================'
+ endif
+
 end subroutine getopac_opdep
 
 subroutine getintenerg_opdep(Teqi, rhoi, ueqi)
