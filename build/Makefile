@@ -107,6 +107,12 @@ ifdef SMOL
     SRCDUST+= growth_smol.f90
 endif
 
+ifeq ($(SYSTEM), mycluster)
+    include Makefile_defaults_ifort
+    QSYS = slurm
+    QPROJECT='p01'
+endif
+
 #ifndef SRCGROWTH
 #    SRCGROWTH = growth.F90
 #endif
