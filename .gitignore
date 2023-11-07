@@ -30,3 +30,8 @@ data/velfield/cube_v2.dat
 data/velfield/cube_v1.dat
 build/Makefile_setups
 src/main/eos copy.f90
+src/utils/track_clumps.f90
+src/utils/analysis_clumptrack.f90
+src/main/readwrite_dumps_fortran.F90
+src/main/readwrite_dumps_fortran.F90
+src/main/readwrite_dumps_fortran.F90
