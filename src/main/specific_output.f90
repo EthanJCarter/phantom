@@ -38,8 +38,8 @@ module density
        real, dimension(1000) :: sink_flag_debug, clump_flag_debug
        real, dimension(1000) :: distance2, distance2_sinks
    
-       dyn_time_inner_disc =(10.0**1.5) * (3.15E7/5.023E6) 
-         if (n_clumps == 0 .and. time > dyn_time_inner_disc) then
+       !dyn_time_inner_disc =(10.0**1.5) * (3.15E7/5.023E6) 
+         if (n_clumps == 0) then !.and. time > dyn_time_inner_disc) then
            do i=1, npart
              rhoi = rhoh(xyzh(4,i),massoftype(igas))
                if ((rhoi *unit_density) > exp_min) then
@@ -52,30 +52,30 @@ module density
                  write(7228,*) "Number of clumps:", n_clumps
                  write(7228,*) "Number of sinks:", nptmass
                  do k = 1, n_clumps
-                   do j = 1, nptmass
-                     write(7228,*)'Clumps: ' // NEW_LINE('A20'),&
-                     k,',', &
-                     clump_pid(k), &
-                     clump_dens(k) * unit_density,',', &
-                     xyzh(1,clump_pid(k)),',', &
-                     xyzh(2,clump_pid(k)),',', &
-                     xyzh(3,clump_pid(k)), NEW_LINE('A20'), &
-                     "Sinks: " // NEW_LINE('A'),&
-                     j,',', &
-                     xyzmh_ptmass(1,j),',',&
-                     xyzmh_ptmass(2,j),',',&
-                     xyzmh_ptmass(3,j)
-   
-                   enddo
+                   write(7228,*) k,',', &
+                   clump_pid(k), &
+                   clump_dens(k) * unit_density,',', &
+                   xyzh(1,clump_pid(k)),',', &
+                   xyzh(2,clump_pid(k)),',', &
+                   xyzh(3,clump_pid(k))
+ 
                  enddo
-                   close(7228)
+ 
+                 do j = 1, nptmass
+                   write(7228,*)j,',', &
+                   xyzmh_ptmass(1,j),',',&
+                   xyzmh_ptmass(2,j),',',&
+                   xyzmh_ptmass(3,j)
+ 
+                 enddo
+                 close(7228)
    
                     exit
                endif
              enddo
            endif
    
-           if (n_clumps > 0 .and. time > dyn_time_inner_disc) then
+           if (n_clumps > 0) then! .and. time > dyn_time_inner_disc) then
              iexp = exp_min
              do i=1, npart
                if (.not. isdead_or_accreted(xyzh(4,i))) then ! i.e. if the particle is alive and hasn't been accreted by any sink
@@ -95,12 +95,12 @@ module density
    
                  new_clump = 1       ! Flag to determine if new clump is away from other clumps
                  away_from_sinks = 1 ! Flag to determine if new clump is away from sinks
-                 flag1 = 1
+                 flag1 = 1 !Default flags to true
                  flag2 = 1
                  do k=1,n_clumps
                    !if within a certain distance (100 code units?)
                    if (distance2(k) < 100) then
-                     flag1 = 0
+                     flag1 = 0 !Set flag to false, don't do anything
                      exit
    
                    endif
@@ -117,7 +117,7 @@ module density
                  if (nptmass > 1) then
                    do j=1,nptmass
                      if (distance2_sinks(j) < 100) then
-                       flag2 = 0
+                       flag2 = 0 !Set flag to false, don't do anything
                        exit
    
                      endif
@@ -137,7 +137,7 @@ module density
                    !Add to clump count
                    n_clumps = n_clumps + 1
                    !redefine output density - is this needed?
-                   clump_output_density(n_clumps) = 10.0**iexp
+                   clump_output_density(n_clumps) = 10**iexp
    
                    !set clump density and pid to current particle values
                    clump_dens(n_clumps)= rhoi
@@ -207,7 +207,7 @@ module density
              xyzh(1,clump_pid(w)),",",xyzh(2,clump_pid(w)),",",xyzh(3,clump_pid(w)),",",&
              vxyzu(1,clump_pid(w)),",",vxyzu(2,clump_pid(w)),",",vxyzu(3,clump_pid(w))
              close(499)
-             new_exponent = (log10(clump_output_density(w)) + 1)
+             new_exponent = (log10(clump_output_density(w)) + 0.2)
              clump_output_density(w) = 10.**new_exponent
    
            !else 
