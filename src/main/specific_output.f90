@@ -123,7 +123,7 @@ module density
                      endif
                    enddo
    
-                   away_from_sinks=away_from_sinks*flag2 !???
+                   away_from_sinks=away_from_sinks*flag2 
    
                    !!! DEBUGGING
                    do j=1, nptmass
@@ -137,14 +137,14 @@ module density
                    !Add to clump count
                    n_clumps = n_clumps + 1
                    !redefine output density - is this needed?
-                   clump_output_density(n_clumps) = 10**iexp
+                   clump_output_density(n_clumps) = exp_min
    
                    !set clump density and pid to current particle values
                    clump_dens(n_clumps)= rhoi
                    clump_pid(n_clumps) = i
                    !Write-out informations to clumps_and_sinks.dat
                    !Writes a new file everytime there is a new clump
-                   write(clumps_and_sinks,'(A16,I3.3,A4)')"clumps_and_sinks",n_clumps, ".dat"
+                   write(clumps_and_sinks,'(A16,I3.3,A4)') "clumps_and_sinks",n_clumps,".dat"
                    open(7228,file=clumps_and_sinks,position='append')
                    write(7228,*) "Number of clumps:", n_clumps
                    write(7228,*) "Number of sinks:", nptmass
@@ -172,7 +172,7 @@ module density
                  !If it is NOT a new clump and is close enough to an existing clump
                  if (new_clump == 0) then
                    do k=1,n_clumps
-                     if (rhoi > clump_dens(k) .and. (distance2(k) < 1)) then ! check is i is alive
+                     if (rhoi > clump_dens(k) .and. (distance2(k) < 1)) then ! check if i is alive
                        clump_dens(k)= rhoi !Define new clump dens as particle dens
                        clump_pid(k) = i !Define clump_pid as current particle id
    
@@ -185,12 +185,14 @@ module density
          endif
    
          do w = 1, n_clumps
+
+           !print*, "clump_density: ", (clump_dens(w)*unit_density), "clump output: ", clump_output_density(w)
    
            !If the clump density is between dens_min and dens_max, write out a fulldump
            if ((clump_dens(w) * unit_density) .GE. clump_output_density(w) .and. (clump_output_density(w) .LE. exp_max )) then
    
    
-             print*, "Trying to write up..."
+             print*, "Trying to write up clump of density: ", clump_output_density(w), "and PID: ", clump_pid(w)
              runid = 'run1'
    
              write(dumpfile_extension, ' (I2)')int(abs(log10(clump_output_density(w))) * 10)
@@ -201,18 +203,44 @@ module density
              write(dumpfile,format)runid,".",w, ".",clump_pid(w),".",(int(abs(log10(clump_output_density(w))) * 10))
              call write_fulldump(time,dumpfile)
              !          call write_restart_file()
+             write(clumps_and_sinks,'(A16,I3.3,A1,I3.3,A4)') "clumps_and_sinks",n_clumps,".",(int(abs(log10(clump_output_density(w))) * 10)),".dat"
+             open(7228,file=clumps_and_sinks,position='append')
+             write(7228,*) "Number of clumps:", n_clumps
+             write(7228,*) "Number of sinks:", nptmass
+             do k = 1, n_clumps
+               write(7228,*) k,',', &
+               clump_pid(k), &
+               clump_dens(k) * unit_density,',', &
+               xyzh(1,clump_pid(k)),',', &
+               xyzh(2,clump_pid(k)),',', &
+               xyzh(3,clump_pid(k))
+
+             enddo
+
+             do j = 1, nptmass
+               write(7228,*)j,',', &
+               xyzmh_ptmass(1,j),',',&
+               xyzmh_ptmass(2,j),',',&
+               xyzmh_ptmass(3,j)
+
+             enddo
+             close(7228)
    
              open(499,file=clump_info_file,position='append')
              write(499,*) (clump_dens(w) * unit_density),",",&
              xyzh(1,clump_pid(w)),",",xyzh(2,clump_pid(w)),",",xyzh(3,clump_pid(w)),",",&
              vxyzu(1,clump_pid(w)),",",vxyzu(2,clump_pid(w)),",",vxyzu(3,clump_pid(w))
              close(499)
-             new_exponent = (log10(clump_output_density(w)) + 0.2)
+             new_exponent = (log10(clump_output_density(w)) + 1)
+
+             print*, new_exponent
+
              clump_output_density(w) = 10.**new_exponent
    
            !else 
              !print*, clump_output_density(w)
              !print*,exp_max
+             
    
            endif
    
