@@ -38,7 +38,7 @@ module density
        real, dimension(1000) :: sink_flag_debug, clump_flag_debug
        real, dimension(1000) :: distance2, distance2_sinks
    
-       !dyn_time_inner_disc =(10.0**1.5) * (3.15E7/5.023E6) 
+       dyn_time_inner_disc =(10.0**1.5) * (3.15E7/5.023E6) 
          if (n_clumps == 0) then !.and. time > dyn_time_inner_disc) then
            do i=1, npart
              rhoi = rhoh(xyzh(4,i),massoftype(igas))
@@ -233,7 +233,7 @@ module density
              close(499)
              new_exponent = (log10(clump_output_density(w)) + 1)
 
-             print*, new_exponent
+             !print*, new_exponent
 
              clump_output_density(w) = 10.**new_exponent
    
