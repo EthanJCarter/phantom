@@ -39,7 +39,7 @@ module density
        real, dimension(1000) :: distance2, distance2_sinks
    
        dyn_time_inner_disc =(10.0**1.5) * (3.15E7/5.023E6) 
-         if (n_clumps == 0) then !.and. time > dyn_time_inner_disc) then
+         if (n_clumps == 0 .and. time > dyn_time_inner_disc) then
            do i=1, npart
              rhoi = rhoh(xyzh(4,i),massoftype(igas))
                if ((rhoi *unit_density) > exp_min) then
@@ -75,7 +75,7 @@ module density
              enddo
            endif
    
-           if (n_clumps > 0) then! .and. time > dyn_time_inner_disc) then
+           if (n_clumps > 0 .and. time > dyn_time_inner_disc) then
              iexp = exp_min
              do i=1, npart
                if (.not. isdead_or_accreted(xyzh(4,i))) then ! i.e. if the particle is alive and hasn't been accreted by any sink
