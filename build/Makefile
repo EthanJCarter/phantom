@@ -296,6 +296,10 @@ ifdef SRCTURB
     FPPFLAGS += -DDRIVING
 endif
 
+ifeq ($(RANDOM_SEED), yes)
+    FPPFLAGS += -DRANDOM
+endif
+
 ifeq ($(KROME), krome)
     FPPFLAGS += -DKROME
 ifeq ($(SYSTEM), ifort)

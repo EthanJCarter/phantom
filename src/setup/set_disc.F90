@@ -536,7 +536,12 @@ subroutine set_disc_positions(npart_tot,npart_start_count,do_mixture,R_ref,R_in,
  real    :: dR,f_val,sigmamixt,HHdust,HHsqrt2dust,rhozmixt,csdust
 
  !--seed for random number generator
- iseed = -34598 + (itype - igas)
+ #ifdef RANDOM
+   iseed = ran2(-8521)
+ #else
+   iseed = -34598 + (itype - igas)
+ #endif
+
  honH = 0.
  ninz = 0
 
