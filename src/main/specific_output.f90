@@ -199,7 +199,7 @@ module density
              write(clump_id, ' (I5)')w
              write(clump_info_file, '(I3.3,A4)')w, ".dat"
              write(particle_id,' (I7)')clump_pid(w)
-             format = "(A4,A1,I3.3,A1,I7.7,A1,I3.3)"
+             format = "(A4,A1,I3.3,A1,I3.3,A1,I7.7)"
              write(dumpfile,format)runid,".",w, ".",(int(abs(log10(clump_output_density(w))) * 10)),".",clump_pid(w)
              call write_fulldump(time,dumpfile)
              !          call write_restart_file()
