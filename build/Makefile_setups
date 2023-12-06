@@ -187,7 +187,7 @@ endif
 ifeq ($(SETUP), myranddisc)
 #   self-gravitating gas disc
     DISC_VISCOSITY=yes
-    SETUPFILE= setup_disc.f90
+    SETUPFILE= setup_disc_carter.f90
     ANALYSIS= analysis_disc.f90
     ISOTHERMAL=no
     PERIODIC = no
