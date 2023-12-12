@@ -18,13 +18,12 @@ module eos_stamatellos
 !
 
  implicit none
- real(kind=8),allocatable,public :: optable(:,:,:)
- real(kind=8),allocatable,public :: Gpot_cool(:), gradP_cool(:) !==gradP/rho
+ real,allocatable,public :: optable(:,:,:)
+ real,allocatable,public :: Gpot_cool(:), gradP_cool(:) !==gradP/rho
  character(len=25), public :: eos_file= 'myeos.dat' !default name of tabulated EOS file
 !integer,public :: iunitst=19
  integer,save :: nx,ny ! dimensions of optable read in
- public :: read_optab,getopac_opdep,init_S07cool,getintenerg_opdep
- public :: finish_S07cool
+ public :: read_optab,getopac_opdep,init_S07cool,getintenerg_opdep,finish_S07cool
 contains
 
 subroutine init_S07cool()
@@ -57,7 +56,8 @@ subroutine read_optab(eos_file,ierr)
  if (ierr > 0) return
  do
     read(10,'(A120)') junk
-    if (index(adjustl(junk),'::') == 0) then !ignore comment lines
+    if (len(trim(adjustl(junk))) == 0) cycle ! blank line
+    if ((index(adjustl(junk),"::") == 0) .and. (index(adjustl(junk),"#") .ne. 1 )) then !ignore comment lines
        junk = adjustl(junk)
        read(junk, *,iostat=errread) nx, ny
        exit
@@ -72,23 +72,24 @@ subroutine read_optab(eos_file,ierr)
     enddo
  enddo
  print *, 'nx,ny=', nx, ny
- close(10)
+ print *, "Optable first row:"
+ print *, (OPTABLE(1,1,i),i=1, 6)
 end subroutine read_optab
 
 !
 ! Main subroutine for interpolating tables to get EOS values
 !
 subroutine getopac_opdep(ui,rhoi,kappaBar,kappaPart,Ti,gmwi)
- real(kind=8), intent(in)  :: ui,rhoi
- real(kind=8), intent(out) :: kappaBar,kappaPart,Ti,gmwi
+ real, intent(in)  :: ui,rhoi
+ real, intent(out) :: kappaBar,kappaPart,Ti,gmwi
 
  integer i,j
- real(kind=8) m,c
- real(kind=8) kbar1,kbar2
- real(kind=8) kappa1,kappa2
- real(kind=8) Tpart1,Tpart2
- real(kind=8) gmw1,gmw2
- real(kind=8) ui_, rhoi_,rhomin,umin
+ real m,c
+ real kbar1,kbar2
+ real kappa1,kappa2
+ real Tpart1,Tpart2
+ real gmw1,gmw2
+ real ui_, rhoi_,rhomin,umin
 
  rhomin = OPTABLE(1,1,1)
  umin = OPTABLE(1,1,3)
@@ -183,24 +184,16 @@ subroutine getopac_opdep(ui,rhoi,kappaBar,kappaPart,Ti,gmwi)
 
  gmwi = m*rhoi_ + c
 
-!DEBUG FOR rhoi_
- !if (rhoi_ > 1E-5) then
- ! print*, rhoi_
- ! print*, '============================'
- !  print*, kappaPart,kappaBar,Ti,gmwi
- !  print*, '============================'
- !endif
-
 end subroutine getopac_opdep
 
 subroutine getintenerg_opdep(Teqi, rhoi, ueqi)
- real(kind=8), intent(out) :: ueqi
- real(kind=8), intent(in)    :: Teqi,rhoi
+ real, intent(out) :: ueqi
+ real, intent(in)    :: Teqi,rhoi
 
- real(kind=8) u1, u2
- real(kind=8) m, c
+ real u1, u2
+ real m, c
  integer i, j
- real(kind=8) rhoi_
+ real rhoi_
 
  ! interpolate through OPTABLE to obtain equilibrium internal energy
 
