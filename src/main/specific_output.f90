@@ -47,7 +47,7 @@ module density
                  clump_pid(1) = i
                  n_clumps = 1
                  clump_output_density(1) = exp_min
-                 write(clump_info,'(A10,I3.3,A4)')"clump_info",n_clumps, ".dat"
+                 write(clump_info,'(A10,I3.3,A4)')"info",n_clumps, ".dat"
                  open(7228,file=clump_info,position='append')
                  write(7228,*) "Number of clumps:", n_clumps
                  write(7228,*) "Number of sinks:", nptmass
@@ -144,7 +144,7 @@ module density
                    clump_pid(n_clumps) = i
                    !Write-out information to clump_info.dat
                    !Writes a new file everytime there is a new clump
-                   write(clump_info,'(A10,I3.3,A4)') "clump_info",n_clumps,".dat"
+                   write(clump_info,'(A10,I3.3,A4)') "info",n_clumps,".dat"
                    open(7228,file=clump_info,position='append')
                    write(7228,*) "Number of clumps:", n_clumps
                    write(7228,*) "Number of sinks:", nptmass
@@ -203,7 +203,7 @@ module density
              write(dumpfile,format)runid,".",w, ".",(int(abs(log10(clump_output_density(w))) * 10)),".",clump_pid(w)
              call write_fulldump(time,dumpfile)
              !          call write_restart_file()
-             write(clump_info,'(A10,I3.3,A1,I3.3,A4)') "clump_info",n_clumps,".",(int(abs(log10(clump_output_density(w))) * 10)),".dat"
+             write(clump_info,'(A10,I3.3,A1,I3.3,A4)') "info",n_clumps,".",(int(abs(log10(clump_output_density(w))) * 10)),".dat"
              open(7228,file=clump_info,position='append')
              write(7228,*) "Number of clumps:", n_clumps
              write(7228,*) "Number of sinks:", nptmass
