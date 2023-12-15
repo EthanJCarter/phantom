@@ -305,7 +305,7 @@ ifeq ($(KROME), krome)
 ifeq ($(SYSTEM), ifort)
     LDFLAGS  += -mkl
 else
-    LDFLAGS  += -L/usr/lib/x86_64-linux-gnu -lmkl_core -lmkl_gnu_thread -lmkl_gf_lp64 -fopenmp
+    LDFLAGS  += -L/usr/lib/x86_64-linux-gnu -lmkl_core -lmkl_gnu_thread -lmkl_gf_lp64 -fqopenmp
 endif
 endif
 
