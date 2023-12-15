@@ -199,6 +199,22 @@ ifeq ($(SETUP), myranddisc)
     RANDOM_SEED=yes
 endif
 
+ifeq ($(SETUP), myranddiscDEBUG)
+#   self-gravitating gas disc
+    DISC_VISCOSITY=yes
+    SETUPFILE= setup_disc_carter.f90
+    ANALYSIS= analysis_disc.f90
+    ISOTHERMAL=no
+    PERIODIC = no
+    GRAVITY = yes
+    KNOWN_SETUP=yes
+    MULTIRUNFILE= multirun.f90
+    IND_TIMESTEPS=yes
+    MODFILE=moddump_cen_on_clump.f90
+    RANDOM_SEED=yes
+    DEBUG=yes
+endif
+
 ifeq ($(SETUP), mydiscdebug)
 #   self-gravitating gas disc
     DISC_VISCOSITY=yes
