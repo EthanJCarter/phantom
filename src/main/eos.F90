@@ -1208,7 +1208,7 @@ logical function eos_is_non_ideal(ieos)
  integer, intent(in) :: ieos
 
  select case(ieos)
- case(10,12,15,20)
+ case(10,12,15,20,21)
     eos_is_non_ideal = .true.
  case default
     eos_is_non_ideal = .false.
