@@ -36,8 +36,8 @@ subroutine evol(infile,logfile,evfile,dumpfile)
  use timestep,         only:time,tmax,dt,dtmax,nmax,nout,nsteps,dtextforce,rhomaxnow,&
                             dtmax_ifactor,dtmax_ifactorWT,dtmax_dratio,check_dtmax_for_decrease,&
                             idtmax_n,idtmax_frac,idtmax_n_next,idtmax_frac_next
- use density,          only:specific_output, n_clumps, write_restart_file, read_restart_file, nlines, clump_pid, &
-                            clump_output_density, assign_values_from_restart, n_clumps_in_restart, &
+ use clump_tracking,          only:specific_output, n_clumps, write_restart_file, read_restart_file, nlines, clump_pid, &
+                            full_output_density, small_output_density, assign_values_from_restart, n_clumps_in_restart, &
                             restart_file_read_counter, read_params_file
  use evwrite,          only:write_evfile,write_evlog
  use energies,         only:etot,totmom,angtot,mdust,np_cs_eq_0,np_e_eq_0,hdivBB_xa
@@ -318,8 +318,8 @@ subroutine evol(infile,logfile,evfile,dumpfile)
                      read(1,*,iostat=io_file) clump_id,clump_particle_id,next_density
 
                      clump_pid(clump_id) = clump_particle_ID !Assign clump particle ID using clump as index
-                     clump_output_density(clump_id) = 10**next_density
-                     print "(A30, E10.3)", "next clump density: ", next_density
+                     full_output_density(clump_id) = 10**next_density
+                     print "(A, E10.3)", "next full clump density: ", next_density
                      !if (io_file/=0) exit !exists at last entry, try with a real exit condition
                   enddo
 
