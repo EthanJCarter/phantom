@@ -17,9 +17,9 @@ module moddump
     ! :Dependencies: part
     !
      implicit none
-    
+
     contains
-    
+
     subroutine modify_dump(npart,npartoftype,massoftype,xyzh,vxyzu)
      use part, only: xyzmh_ptmass,vxyz_ptmass,nptmass
      integer, intent(inout) :: npart
