@@ -198,14 +198,14 @@ module analysis
             clumpi%z = 0.0d0
             clumpi%pid = 0
             do i=1,npart
-              rhoi = rhoh(xyzh(4,i),massoftype(igas)) * unit_density
+              rhoi = rhoh(xyzh(4,i),massoftype(igas))
               tempi = eos_vars(itemp,i)
               dist_sq = ((xyzh(1,i) - xyzh(1,clump_pid(k)))**2 &
               + (xyzh(2,i) - xyzh(2,clump_pid(k)))**2 &
               + (xyzh(3,i) - xyzh(3,clump_pid(k)))**2)
               min_index = minloc(clumpi%rho, dim=1)
               !print '(A, I3.2)', 'Index: ', min_index
-              if (dist_sq < 100 .and. rhoi > minval(clumpi%rho)) then
+              if (dist_sq < 100 .and. (rhoi * unit_density) > minval(clumpi%rho)) then
                 clumpi%rho(min_index) = rhoi ! Replace smallest value with the desired value
                 clumpi%temp(min_index) = tempi
                 !clumpi%x(min_index) = xyzh(1,i)
@@ -217,14 +217,15 @@ module analysis
             max_index = maxloc(clumpi%rho, dim=1)
             averho  = (sum(clumpi%rho))/40 !Size of clumpi is hardcoded for ease for now.
             avetemp = (sum(clumpi%temp))/40
-            print '(A, I, E10.3)', 'Average density for clump', k, averho
+            print '(A, I, E10.3)', 'Average density for clump', k, (averho * unit_density)
             print '(A,I3.3,A10)', 'Writing to: ', k, '.small.dat'
             write(clump_info_file, '(I3.3,A10)') k, ".small.dat"
             open(499,file=clump_info_file,position='append')
-            write(499, '(I10, 4E10.3, 6F12.3)') clump_pid(k), (clump_dens(k)*unit_density), &
-            clump_temp(k), averho, avetemp,  &
-            xyzh(1,clump_pid(k)), xyzh(2,clump_pid(k)), xyzh(3,clump_pid(k)), &
-            vxyzu(1,clump_pid(k)), vxyzu(2,clump_pid(k)), vxyzu(3,clump_pid(k))
+            write(499, *) clumpi%rho
+            !write(499, '(I10, 4E10.3, 6F12.3)') clump_pid(w), (clump_dens(w)*unit_density), &
+            !clump_temp(w), averho, avetemp,  &
+            !xyzh(1,clump_pid(w)), xyzh(2,clump_pid(w)), xyzh(3,clump_pid(w)), &
+            !vxyzu(1,clump_pid(w)), vxyzu(2,clump_pid(w)), vxyzu(3,clump_pid(w))
             enddo
 
     end subroutine do_analysis

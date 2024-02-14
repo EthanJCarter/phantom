@@ -212,7 +212,7 @@ module clump_tracking
          do w = 1, n_clumps
 
            !print*, "clump_density: ", (clump_dens(w)*unit_density), "clump output: ", full_output_density(w)
-           if ((clump_dens(w) * unit_density) .GE. (small_output_density(w)*) .and. (small_output_density(w) .LE. exp_max )) then
+           if ((clump_dens(w) * unit_density) .GE. (small_output_density(w)) .and. (small_output_density(w) .LE. exp_max )) then
             !Set all values in temp clump to zero
             clumpi%num = 0.0d0
             clumpi%rho = 0.0d0
@@ -230,7 +230,7 @@ module clump_tracking
               + (xyzh(3,i) - xyzh(3,clump_pid(w)))**2)
               min_index = minloc(clumpi%rho, dim=1)
               !print '(A, I3.2)', 'Index: ', min_index
-              if (dist2_clumps < 100 .and. (rhoi * unit_density) > (minval(clumpi%rho)*unit_density)) then
+              if (dist2_clumps < 100 .and. (rhoi * unit_density) > (minval(clumpi%rho) * unit_density)) then
                 clumpi%rho(min_index) = rhoi ! Replace smallest value with the desired value
                 clumpi%temp(min_index) = tempi
                 !clumpi%x(min_index) = xyzh(1,i)
@@ -242,12 +242,12 @@ module clump_tracking
             max_index = maxloc(clumpi%rho, dim=1)
             averho  = (sum(clumpi%rho))/40 !Size of clumpi is hardcoded for ease for now.
             avetemp = (sum(clumpi%temp))/40
-            print '(A, I, E10.3)', 'Average density for clump', w, averho
+            print '(A, I, E10.3)', 'Average density for clump', w, (averho*unit_density)
             print '(A,I3.3,A10)', 'Writing to: ', w, '.small.dat'
             write(clump_info_file, '(I3.3,A10)') w, ".small.dat"
             open(499,file=clump_info_file,position='append')
             write(499, '(I10, 4E10.3, 6F12.3)') clump_pid(w), (clump_dens(w)*unit_density), &
-            clump_temp(w), averho, avetemp,  &
+            clump_temp(w), (averho*unit_density), avetemp,  &
             xyzh(1,clump_pid(w)), xyzh(2,clump_pid(w)), xyzh(3,clump_pid(w)), &
             vxyzu(1,clump_pid(w)), vxyzu(2,clump_pid(w)), vxyzu(3,clump_pid(w))
 
