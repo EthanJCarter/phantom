@@ -71,6 +71,7 @@ module clump_tracking
                if ((rhoi *unit_density) > exp_min) then
                  clump_dens(1)= rhoi
                  clump_pid(1) = i
+                 clump_temp(1) = eos_vars(itemp,i)
                  n_clumps = 1
                  full_output_density(1) = exp_min
                  small_output_density(1) = exp_min
@@ -169,6 +170,7 @@ module clump_tracking
                    !Set clump density and pid to current particle values
                    clump_dens(n_clumps)= rhoi
                    clump_pid(n_clumps) = i
+                   clump_temp(n_clumps) = eos_vars(itemp,i)
                    !Write-out information to clump_info.dat
                    !Writes a new file everytime there is a new clump
                    write(clump_info,'(A10,I3.3,A4)') "info",n_clumps,".dat"
@@ -200,6 +202,7 @@ module clump_tracking
                      if (rhoi > clump_dens(k) .and. (distance2(k) < 1)) then ! check if i is alive
                        clump_dens(k)= rhoi !Define new clump dens as particle dens
                        clump_pid(k) = i !Define clump_pid as current particle id
+                       clump_temp(k) = eos_vars(itemp,i)
                      endif
                    enddo
                  endif
@@ -246,8 +249,8 @@ module clump_tracking
             print '(A,I3.3,A10)', 'Writing to: ', w, '.small.dat'
             write(clump_info_file, '(I3.3,A10)') w, ".small.dat"
             open(499,file=clump_info_file,position='append')
-            write(499, '(I10, 4E10.3, 6F12.3)') clump_pid(w), (clump_dens(w)*unit_density), &
-            clump_temp(w), (averho*unit_density), avetemp,  &
+            write(499, '(I10, 5E10.3, 6F12.3)') clump_pid(w), time,  &
+             (clump_dens(w)*unit_density), clump_temp(w), (averho*unit_density), avetemp,  &
             xyzh(1,clump_pid(w)), xyzh(2,clump_pid(w)), xyzh(3,clump_pid(w)), &
             vxyzu(1,clump_pid(w)), vxyzu(2,clump_pid(w)), vxyzu(3,clump_pid(w))
 
