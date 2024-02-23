@@ -75,7 +75,7 @@ module clump_tracking
                  n_clumps = 1
                  full_output_density(1) = exp_min
                  small_output_density(1) = exp_min
-                 write(clump_info,'(A10,I3.3,A4)')"info",n_clumps, ".dat"
+                 write(clump_info,'(A10,I3.3,A4)')"info", ".dat"
                  open(7228,file=clump_info,position='append')
                  write(7228,*) "Number of clumps:", n_clumps
                  write(7228,*) "Number of sinks:", nptmass
@@ -246,8 +246,8 @@ module clump_tracking
             averho  = (sum(clumpi%rho))/40 !Size of clumpi is hardcoded for ease for now.
             avetemp = (sum(clumpi%temp))/40
             print '(A, I, E10.3)', 'Average density for clump', w, (averho*unit_density)
-            print '(A,I3.3,A10)', 'Writing to: ', w, '.small.dat'
-            write(clump_info_file, '(I3.3,A10)') w, ".small.dat"
+            print '(A,I3.3,A10)', 'Writing to: ', w, '.ave.dat'
+            write(clump_info_file, '(I3.3,A10)') w, ".ave.dat"
             open(499,file=clump_info_file,position='append')
             write(499, '(I10, 5E10.3, 6F12.3)') clump_pid(w), time,  &
              (clump_dens(w)*unit_density), clump_temp(w), (averho*unit_density), avetemp,  &
@@ -264,7 +264,7 @@ module clump_tracking
            !If the clump density is between dens_min and dens_max and is above the current full_output_density, write out a fulldump
            if ((clump_dens(w) * unit_density) .GE. full_output_density(w) .and. (full_output_density(w) .LE. exp_max )) then
              print*, "Trying to write up clump of density: ", full_output_density(w), "and PID: ", clump_pid(w)
-             runid = 'run1'
+             runid = 'lom'
 
              write(dumpfile_extension, ' (I2)')int(abs(log10(full_output_density(w))) * 10)
              write(clump_id, ' (I5)')w
@@ -273,7 +273,8 @@ module clump_tracking
              write(dumpfile,format)runid,".",w, ".",(int(abs(log10(full_output_density(w))) * 10)),".",clump_pid(w)
              call write_fulldump(time,dumpfile)
              !call write_restart_file()
-             write(clump_info,'(A10,I3.3,A1,I3.3,A4)') "info",n_clumps,".",(int(abs(log10(full_output_density(w))) * 10)),".dat"
+             !Changed to a logfile-style format
+             write(clump_info,'(A10,I3.3,A1,I3.3,A4)') "info",".",(int(abs(log10(full_output_density(w))) * 10)),".log"
              open(7228,file=clump_info,position='append')
              write(7228,*) "Number of clumps:", n_clumps
              write(7228,*) "Number of sinks:", nptmass
