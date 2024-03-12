@@ -75,7 +75,7 @@ module clump_tracking
                  n_clumps = 1
                  full_output_density(1) = exp_min
                  small_output_density(1) = exp_min
-                 write(clump_info,'(A10,I3.3,A4)')"info", ".dat"
+                 write(clump_info,'(A10,I3.3,A4)')"info", n_clumps, ".dat"
                  open(7228,file=clump_info,position='append')
                  write(7228,*) "Number of clumps:", n_clumps
                  write(7228,*) "Number of sinks:", nptmass
