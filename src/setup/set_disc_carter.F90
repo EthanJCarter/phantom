@@ -630,16 +630,16 @@ subroutine set_disc_positions(npart_tot,npart_start_count,do_mixture,R_ref,R_in,
     if (do_mixture) rhopart = rhopart + rhozmixt
     hpart = hfact*(particle_mass/rhopart)**(1./3.)
 
-    !if (i_belong_i4(i)) then
-    ipart = ipart + 1
-    !--set positions -- move to origin below
-    xyzh(1,ipart) = R*cos(phi)
-    xyzh(2,ipart) = R*sin(phi)
-    xyzh(3,ipart) = zi
-    xyzh(4,ipart) = hpart
-    !--set particle type
-    call set_particle_type(ipart,itype)
-    !endif
+    if (i_belong_i4(i)) then
+      ipart = ipart + 1
+      !--set positions -- move to origin below
+      xyzh(1,ipart) = R*cos(phi)
+      xyzh(2,ipart) = R*sin(phi)
+      xyzh(3,ipart) = zi
+      xyzh(4,ipart) = hpart
+      !--set particle type
+      call set_particle_type(ipart,itype)
+    endif
     !if (i_belong_i4(i+1) .and. i+1 <= npart_tot) then
     !   ipart = ipart + 1
        !--set positions -- move to origin below
