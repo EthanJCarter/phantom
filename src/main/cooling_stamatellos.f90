@@ -65,26 +65,35 @@ subroutine cooling_S07(rhoi,ui,dudti_cool,xi,yi,zi,Tfloor,dudti_sph,dt,i)
  integer,intent(in) :: i
  real,intent(out) :: dudti_cool
  real            :: coldensi,kappaBari,kappaParti,ri2
- real            :: gmwi,Tmini4,Ti,dudt_rad,Teqi,Hstam,HLom
+ real            :: gmwi,Tmini4,Ti,dudt_rad,Teqi,Hstam,HLom, Tr
  real            :: tcool,ueqi,umini,tthermi,poti,presi,Hcomb
 
  poti = Gpot_cool(i)
 !    Tfloor is from input parameters and is background heating
 !    Stellar heating
+!    Move calc for ri2 above so we only calculate it once.
+ ri2 = (xi-xyzmh_ptmass(1,isink_star))**2d0 &
+ + (yi-xyzmh_ptmass(2,isink_star))**2d0 &
+ + (zi-xyzmh_ptmass(3,isink_star))**2d0
+
  if (isink_star > 0 .and. Lstar > 0.d0) then
-    ri2 = (xi-xyzmh_ptmass(1,isink_star))**2d0 &
-             + (yi-xyzmh_ptmass(2,isink_star))**2d0 &
-             + (zi-xyzmh_ptmass(3,isink_star))**2d0
+!   Tfloor + stellar heating
+!   Convert to cgs here as we need ri2 in code units for
+!   calc_Tr.
     ri2 = ri2 *udist*udist
-! Tfloor + stellar heating
     Tmini4 = Tfloor**4d0 + (Lstar*solarl/(16d0*pi*steboltz*ri2))
  else
-    Tmini4 = Tfloor**4d0
+
+!  Calculate and include temperature at radius R.
+!  Replace Tfloor with Tr in this instance.
+   call calc_Tr('disc.discparams',ri2,i,Tr)
+   Tmini4 = (Tr)**4d0
  endif
 
 ! get opacities & Ti for ui
  call getopac_opdep(ui*unit_ergg,rhoi*unit_density,kappaBari,kappaParti,&
            Ti,gmwi)
+ !print*, 'Ti: ', Ti, ' Tr: ', Tr, ' Ri: ', Ri2**0.5, 'ui: ', ui*unit_ergg
  presi = kb_on_mh*rhoi*unit_density*Ti/gmwi
  presi = presi/unit_pressure
 
@@ -206,5 +215,95 @@ subroutine read_options_cooling_stamatellos(name,valstring,imatch,igotallstam,ie
  if (ngot >= 3) igotallstam = .true.
 
 end subroutine read_options_cooling_stamatellos
+
+!Calculate the temperature at given radius R, needed for
+!when we do not set the temperature profile using the 
+!luminosity of the central star.
+subroutine calc_Tr(infile, ri2, i, Tr)
+ use io,       only:warning, fatal
+ use eos,      only:gmw
+ use units,    only:umass,udist,unit_density,unit_ergg,utime,unit_pressure,unit_velocity
+ use physcon,  only:kb_on_mh,gg,solarm
+ use part,       only:eos_vars,igasP,xyzmh_ptmass,igamma
+
+ real,intent(in)               :: ri2
+ integer, intent(in)           :: i
+ character (len=*), intent(in) :: infile
+ real,intent(out)              :: Tr
+ real                          :: R_in,R_ref,R_out,p_index,q_index,M_star,H_R
+ real                          :: T1AU
+ real                          :: ri,cs0,cs_r,cs_sq,G, CS10AU, T10AU
+ integer                       :: iline, iparams=10, ierr
+ character (len=120)           :: discprefix
+
+
+ !iline = index(infile,'.')
+ !discprefix = infile(1:iline-1)
+
+ !call read_discparams(trim(discprefix)//'.discparams',R_in,R_ref,R_out,H_R,p_index,q_index,M_star,iparams,ierr)
+ !if (ierr /= 0) call fatal('analysis','could not open/read discparams.list')
+ !Temporarily hardcode values to see if it works
+ H_R = 0.0556
+ M_star = 0.8
+ q_index = 0.25
+ R_ref = 10
+
+ ri = ri2**0.5
+
+ !Work in code units until sound speed, then convert using unit_velocity
+ cs0 = H_R*((M_star/R_ref)**0.5)*(R_ref**(q_index))
+ !Convert here
+ cs0 = cs0 * unit_velocity
+ cs_r = cs0*ri**(-q_index)
+ !cs10AU = cs0*10**(-q_index)
+ cs_sq = cs_r**2d0
+ Tr = cs_sq*(gmw/kb_on_mh)
+ !T1AU = ((cs0**2d0))*(gmw/kb_on_mh)
+ !T10AU = ((cs10AU**2d0))*(gmw/kb_on_mh)
+
+! print*, 'Mstar: ', M_star
+! print*, 'R_Ref: ', R_ref!/udist
+! print*, 'cs0:', cs0
+! print*, 'cs0_sq:', cs0**2d0
+! print*, 'Ti: ', Tr
+! print*, 'T at 1AU: ', T1AU
+!print*, 'T at 10AU: ', T10AU
+! print*, 'ri: ', Ri
+! print*, 'q: ', q_index
+! STOP
+! print*, '==================='
+! print*, 'Ti: ', Ti
+! print*, '==================='
+
+end subroutine calc_Tr
+
+subroutine read_discparams(filename,R_in,R_ref,R_out,H_R,p_index,q_index,M_star,iunit,ierr)
+ use infile_utils, only:open_db_from_file,inopts,read_inopt,close_db
+ character(len=*), intent(in)  :: filename
+ real,             intent(out) :: R_in,R_ref,R_out,H_R,p_index,q_index,M_star
+ integer,          intent(in)  :: iunit
+ integer,          intent(out) :: ierr
+ type(inopts), allocatable :: db(:)
+ integer :: i
+
+ ! Read in parameters from the file discparams.list
+ call open_db_from_file(db,filename,iunit,ierr)
+ if (ierr /= 0) return
+
+ call read_inopt(R_in,'R_in',db,ierr)
+ if (ierr /= 0) return
+ call read_inopt(R_ref,'R_ref',db,ierr)
+ if (ierr /= 0) return
+ call read_inopt(R_out,'R_out',db,ierr)
+ if (ierr /= 0) return
+ call read_inopt(H_R,'H/R_ref',db,ierr)
+ if (ierr /= 0) return
+ call read_inopt(p_index,'p_index',db,ierr)
+ if (ierr /= 0) return
+ call read_inopt(M_star,'M_star',db,ierr)
+ if (ierr /= 0) return
+ call close_db(db)
+
+end subroutine read_discparams
 
 end module cooling_stamatellos
