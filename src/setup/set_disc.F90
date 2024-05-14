@@ -77,6 +77,7 @@ subroutine set_disc(id,master,mixture,nparttot,npart,npart_start,rmin,rmax, &
  use io,   only:stdout
  use part, only:maxp,idust,maxtypes
  use centreofmass, only:get_total_angular_momentum
+ use eos_stamatellos, only:init_S07cool, finish_S07cool, read_optab, eos_file
  integer,           intent(in)    :: id,master
  integer, optional, intent(in)    :: nparttot
  integer,           intent(inout) :: npart
@@ -112,7 +113,14 @@ subroutine set_disc(id,master,mixture,nparttot,npart,npart_start,rmin,rmax, &
  logical :: smooth_surface_density,do_write,do_mixture
  logical :: do_verbose,exponential_taper,exponential_taper_dust
  logical :: exponential_taper_alternative,exponential_taper_dust_alternative
+ integer :: ierr1
 
+ !
+ !--initialise RT tables
+ !
+ call read_optab(eos_file,ierr1)
+ if (ierr1 > 0) call fatal('init_eos_set_disc', 'failed to read-in EOS file', var='ierr',ival=ierr)
+ call init_S07cool
  !
  !--set problem parameters
  !
@@ -663,8 +671,11 @@ subroutine set_disc_velocities(npart_tot,npart_start_count,itype,G,star_m,aspin,
                                q_index,gamma,R_in,rad,enc_m,smooth_sigma,xyzh,vxyzu,inclination)
  use externalforces, only:iext_einsteinprec
  use options,        only:iexternalforce
- use part,           only:gravity
+ use part,           only:gravity, rhoh, massoftype, igas
  use dim,            only:gr
+ use eos_stamatellos, only:getintenerg_opdep
+ use background_carter, only: calc_csr, calc_Tr, get_Tr
+ use units, only: unit_density, unit_energ, umass
  integer, intent(in)    :: npart_tot,npart_start_count,itype
  real,    intent(in)    :: G,star_m,aspin,aspin_angle,clight,cs0,p_index,q_index
  real,    intent(in)    :: rad(:),enc_m(:),gamma,R_in
@@ -674,6 +685,7 @@ subroutine set_disc_velocities(npart_tot,npart_start_count,itype,G,star_m,aspin,
  real :: term,term_pr,term_bh,det,vr,vphi,cs,R,phi
  integer :: i,itable,ipart,ierr
  real :: rg,vkep
+ real :: rhoi, Ti, ueqi, csr
 
  ierr = 0
  ipart = npart_start_count - 1
@@ -758,16 +770,27 @@ subroutine set_disc_velocities(npart_tot,npart_start_count,itype,G,star_m,aspin,
        !  utherm generally should not be stored
        !  for an isothermal equation of state
        if (maxvxyzu >= 4) then
-          if (itype==igas) then
-             if (gamma > 1.) then
-                vxyzu(4,ipart) = cs**2/(gamma - 1.)/gamma
-             else
-                vxyzu(4,ipart) = 1.5*cs**2
-             endif
-          else
-             vxyzu(4,ipart) = 0.
-          endif
-       endif
+         if (itype==igas) then
+            if (gamma > 1.) then
+               !get density of current particle
+               rhoi = rhoh(xyzh(4,i),massoftype(igas))
+               !get the expected temperature of the particle
+               !for a locally isothermal disc
+               call get_Tr(i,Ti)
+               !pass this temperature to the opacity table
+               !& interpolate for internal energy
+               call getintenerg_opdep(Ti,rhoi*unit_density,ueqi)
+               !convert to energy per unit mass
+               ueqi = ueqi * (umass/unit_energ)
+               !update vxyzu with internal energy of the particle
+               vxyzu(4,ipart) = ueqi
+            else
+               vxyzu(4,ipart) = 1.5*cs**2
+            endif
+         else
+            vxyzu(4,ipart) = 0.
+         endif
+      endif
     endif
  enddo
  if (ierr /= 0) call warning('set_disc','set_disc_velocities: '// &
@@ -890,7 +913,7 @@ subroutine write_discinfo(iunit,R_in,R_out,R_ref,Q,npart,sigmaprofile, &
  use infile_utils, only:write_inopt
  use part,         only:igas
  use physcon,      only:kb_on_mh
- use units,        only:unit_velocity
+ use units,        only:unit_velocity, unit_energ
  integer, intent(in) :: iunit,npart,itype,sigmaprofile
  real,    intent(in) :: R_in,R_out,R_ref,Q,p_index,q_index,star_m,disc_m,sigma_norm,L_tot_mag
  real,    intent(in) :: alphaSS_min,alphaSS_max,R_warp,psimax,R_c,inclination,honH,cs0

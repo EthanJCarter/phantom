@@ -53,11 +53,42 @@ module background_carter
 
  implicit none
 
- public calc_csr, calc_Tr
+ public calc_csr, calc_Tr, read_setupfile, get_Tr
+ real, public :: R_in,R_ref,R_out,p_index,q_index,M_star,H_R
 
  private
 
  contains
+
+ !----------------------------------------------------------------
+ !
+ ! This is a wrapper subroutine for the module.
+ !
+ !----------------------------------------------------------------
+ subroutine get_Tr(i,Tr)
+   use infile_utils, only: inopts
+   integer, intent(in) :: i
+   real, intent(out) :: Tr
+   character(len=100)  :: filename
+   real              :: csr
+   type(inopts), allocatable :: db(:)
+   integer           :: size_db, ierr
+
+   filename = 'disc.setup'
+
+   !defaults
+   Tr = 0
+   H_R = 0.0556
+   M_star = 0.8
+   q_index = 0.25
+   R_ref = 10
+
+   call read_setupfile(filename,ierr)
+
+   call calc_csr(i, csr)
+   call calc_Tr(csr, Tr)
+
+end subroutine get_Tr
 
  !----------------------------------------------------------------
  !
@@ -75,17 +106,10 @@ subroutine calc_csr(i,csr,ri_2)
  real,intent(in), optional     :: ri_2
  integer, intent(in)           :: i
  real,intent(out)              :: csr
- real                          :: R_in,R_ref,R_out,p_index,q_index,M_star,H_R
  real                          :: T1AU
  real                          :: ri,ri2,cs0,cs_sq,G
  integer                       :: iline, iparams=10, ierr
  character (len=120)           :: discprefix
-
- !Temporarily hardcode values to see if it works
- H_R = 0.0556
- M_star = 0.8
- q_index = 0.25
- R_ref = 10
 
  if (present(ri_2)) then
     ! If ri2 is passed as an argument, we can skip calculating it.
@@ -118,17 +142,63 @@ subroutine calc_Tr(csr,Tr)
  use io,       only:warning, fatal
  use eos,      only:gmw
  use physcon,  only:kb_on_mh
-
+ use units, only: unit_velocity
  real, intent(in) :: csr
  real, intent(out) :: Tr
  real             :: cs_sq
 
- cs_sq = csr**2d0
+ cs_sq = (csr**2d0)*unit_velocity*unit_velocity
  !print*, 'cs_sq: ', cs_sq
  Tr = cs_sq*(gmw/kb_on_mh)
  !print*, gmw/kb_on_mh
  !print*, Tr
 
 end subroutine calc_Tr
+
+!------------------------------------------------------------------------
+!
+! read setup file - repurposed from setup_unifdis.f90
+!
+!------------------------------------------------------------------------
+subroutine read_setupfile(filename,ierr)
+   use infile_utils, only:open_db_from_file,inopts,read_inopt,close_db
+   use setunits,     only:read_options_and_set_units
+   character(len=*), intent(in)  :: filename
+   integer,          intent(out) :: ierr
+   integer, parameter :: iunit = 21
+   integer :: nerr
+   integer          :: size_db
+   type(inopts), allocatable :: db(:)
+  
+   print "(a)",' reading setup options from '//trim(filename)
+   nerr = 0
+   ierr = 0
+   call open_db_from_file(db,filename,iunit,ierr)
+   !
+   ! units
+   !
+   call read_options_and_set_units(db,nerr,.false.)
+   !
+   ! reference radii
+   !
+   call read_inopt(R_in,'R_in',db,errcount=nerr)
+   call read_inopt(R_ref,'R_ref',db,errcount=nerr)
+   !
+   ! other parameters
+   !
+   call read_inopt(M_star,'m1',db,errcount=nerr)
+   call read_inopt(H_R,'H_R',db,errcount=nerr)
+   call read_inopt(q_index,'qindex',db,errcount=nerr)
+
+   size_db = size(db)
+   !print*, db
+
+   if (nerr > 0) then
+      print "(1x,i2,a)",nerr,' error(s) during read of setup file...'
+      ierr = nerr
+      return
+   endif
+  
+  end subroutine read_setupfile
 
 end module background_carter
